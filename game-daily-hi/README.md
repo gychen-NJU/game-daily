@@ -1,3 +1,5 @@
+**[中文](README.md) | [English](README.en.md)**
+
 # game-daily-hi · 崩坏3 每日日常
 
 `game-daily` 家族的崩坏3 模块。**14 步全部在本机实跑过**（2026-10-23），含打工子步 5.5。

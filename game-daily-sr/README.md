@@ -1,3 +1,5 @@
+**[中文](README.md) | [English](README.en.md)**
+
 # game-daily-sr · 崩坏：星穹铁道 每日日常
 
 `game-daily` 家族的星铁模块。**14 步全部在本机实跑过**（2026-10-23）。

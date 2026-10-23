@@ -1,3 +1,5 @@
+**[中文](README.md) | [English](README.en.md)**
+
 # game-daily · hub
 
 家族入口与公共引擎。**它自己不做任何点击**：负责「按关键词选模块」+ 提供两个模块共用的
