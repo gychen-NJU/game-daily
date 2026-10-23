@@ -7,6 +7,9 @@ description: >-
   绝区零 / ZZZ → game-daily-zzz（暂停中，只做文档不实操）。
   本 skill 不直接执行任何点击：它只负责选模块、讲清公共约定（环境自检三条路、坐标校准、
   安全红线、状态目录），然后把活交给子模块的 SKILL.md。
+  脚本/坐标点击走不通时（同一坐标连点两次无反应、或鼠标被过滤但键盘有效，如星铁进游戏后的面板），
+  按 §2.4 与 engine/adapters.md §8 改用 harness 的 computer-use（mcp__wincu__windows_computer_use_*）
+  逐屏手推完当天日常，不放弃、也不硬刷。
 ---
 
 # game-daily · 家族入口
@@ -56,6 +59,28 @@ node ..\game-daily\scripts\probe.mjs --game <hi|sr|zzz> --pretty
 - **绝不点**付费礼包（"解锁…礼包"）、删除、重置这类按钮。
 - 截图/日志只写本地 `state/`；对外交付遮角色 UID 与无关窗口。
 - 同一坐标连点两次画面无变化 → 停手，别硬刷。
+
+### 2.4 脚本走不通 → 换 computer-use 手动推（**用户明确要求，别硬刷**）
+
+只要出现下面任一条，就说明"坐标点击这条路对这个游戏失效了"，**立刻停手**：
+
+- 同一坐标连点两次、画面毫无变化（不是坐标偏，是界面不响应）；
+- 鼠标点了没反应但**键盘有效**（本机星铁就是：`key 115` 能开「星际和平指南」，用 `ps-helper` 的合成点击
+  点页签/「前往」全无反应——**被过滤的只是合成鼠标；harness 的 computer-use 能正常接管，已实测跑通**）；
+- 脚本/探针明确报"该窗口拒绝合成输入"。
+
+此时**不要放弃这一天的日常**，改把 harness 的 computer-use 当"手"、把步骤表当"导航"，一步一屏推完：
+
+```
+windows_computer_use_screenshot(windowTitle="星穹铁道|崩坏3")  →  read_image 判读
+→  windows_computer_use_click / keypress  →  再截图复检  →  记下这一步
+```
+
+要点：① 每步都带 `windowTitle`，否则截到的是抢回前台的 DSH；② 目标窗口是管理员权限时
+`click` 可能被 UIPI 拦，改走 `keypress` 或回 ps-helper；③ 常规 Windows 窗口（启动器/登录框）
+用 `snapshot`+`find`+`invoke` 比点像素稳；④ 收工在报告里写清"哪几步是 computer-use 手推的"。
+
+完整切换判据、工具映射与红线：`engine/adapters.md` §8。
 
 ## 3. 执行循环（三模块通用）
 

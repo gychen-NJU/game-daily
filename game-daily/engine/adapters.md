@@ -152,3 +152,45 @@ click x y
 | 点一下变成点到别处 | 前台不是游戏 | 执行前校验前台标题 |
 | 游戏界面与 `expect` 不符 | 版本更新 / 弹窗挡住了 | **停手**，报告并问用户 |
 | `probe` 报的屏幕尺寸比实际小 | DPI 不感知 | 升级 `probe.mjs`/`shot.ps1`（已内置 DPI 感知） |
+| 同一坐标连点两次画面无变化；鼠标无反应但键盘有效 | 该游戏**过滤 ps-helper 的合成鼠标**（星铁进游戏后实测如此） | 改走 §8 用 computer-use 逐屏推（**computer-use 能正常接管，已实测跑通**） |
+
+---
+
+## 8. 升级路径：脚本点不动时，改用 computer-use 手动推（用户明确要求）
+
+> **前提结论（2026-10-23 用户确认）**：星铁会过滤 `ps-helper` 的 `SetCursorPos`+`mouse_event` 合成点击，
+> 但 **harness 的 `mcp__wincu__windows_computer_use_*` 可以正常接管星铁，此前已经跑通过**。
+> 所以「ps-helper 点不动」≠「这个游戏不能自动化」——先换 computer-use 再下结论。
+> 对星铁这类游戏，**computer-use 是首选适配器**，ps-helper 退化为"启停进程 + 发键盘"。
+
+**判定**（满足任一条就切，别"再试三次"——连点只会触发风控/冷却，也浪费时间）：
+
+- 同一坐标 `click` 两次、画面毫无变化；
+- 鼠标点击无反应但**键盘有效**（星铁本机实测：`key 115` 能开指南、`key 27` 能关，合成鼠标点页签/按钮全无响应）；
+- 探针/脚本报该窗口拒绝合成输入。
+
+**做法**：把 computer-use 当"手"、把 `<m>-daily.json` 的 step 表当"导航"，一步一屏地推完剩下的步骤。每步固定五拍：
+
+| 拍 | 工具 |
+|---|---|
+| 截图 | `windows_computer_use_screenshot`（**必带 `windowTitle`**） |
+| 判读 | `read_image`，对照 step 的 `expect` |
+| 执行 | `windows_computer_use_click`（`dispatch:"auto"`）/ `windows_computer_use_keypress`（`["f4"]` 形式） |
+| 复检 | 再截一次，确认界面变了才继续 |
+| 记录 | 这一步用了 computer-use → 写进模块 `state/` 与最终报告 |
+
+**分支处理**
+
+- 目标窗口是**管理员权限**（星铁本体 `requireAdministrator`）→ `click` 可能报 `COMPUTER_USE_INPUT_UNAVAILABLE`
+  （UIPI 拦截）→ 先用 `keypress` 走键盘路径；键盘也走不通再回 §4 ps-helper。
+- 常规 Windows 窗口（米哈游启动器、登录框）→ 用 UIA 更稳：`snapshot` → `find` → `invoke` / `set_value`，
+  不必算像素。
+- 截图里 `imageScale` 是缩放比：`screen = origin + preview / imageScale`。
+
+**红线（与 §2.3 一致，不因换适配器而放松）**
+
+- 付费礼包（"解锁…"）、删除、重置、清空 —— **绝不点**；星铁的付费按钮尤其危险。
+- 界面与 `expect` 对不上、或出现看不懂的弹窗 → 停手，截图问用户，别猜。
+- 只对目标游戏窗口发输入；每批点击前确认前台标题。
+
+**为什么写进 skill**：用户 2026-10-23 明确要求 ——「星铁和崩坏三如果不能正常按脚本进行，请使用 harness 的电脑控制功能（computer-use）来帮我完成每日流程」。即：**脚本失效不等于当天放弃**，能用 computer-use 手动推的，就要推完并在报告里说明。

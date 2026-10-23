@@ -84,6 +84,15 @@ node ..\game-daily\scripts\run-step.mjs --game sr --all           # 14 步全计
 5. **「获得物品」弹窗会吃掉点击**：先点空白 `popup.close_blank` 再继续。
 6. **付费按钮**：`解锁无名客的勋礼`（¥680）就在奖励页「一键领取」旁边，**绝不点**。
 7. **进游戏时的「登录异常 1001_1」**：本机无代理也会偶发，点「确认」重试一次即可（属前置步骤，日常里通常遇不到）。
+8. **输入通道实测（2026-10-23，已确认）**：`StarRail.exe` 会过滤 `ps-helper` 的合成鼠标
+   （`SetCursorPos` + `mouse_event`：标题页「点击进入」能点、`key 115`(F4)/`key 27`(ESC) 有效，但面板里的
+   页签与「前往/进入」按钮毫无反应）；而 **harness 的电脑控制 `mcp__wincu__windows_computer_use_*`
+   可以正常接管**（用户确认"之前测过、已经跑通过"）。
+   ⇒ **星铁一律 computer-use 优先**：`screenshot(windowTitle="星穹铁道")` → `read_image` 判读 →
+   `click` / `keypress` → 再截图复检；`ps-helper` 只用来 `start`/`kill` 进程、发键盘。
+   **别因为"ps-helper 点不动"就判定星铁不能自动化**（10-23 我犯过这个错）。
+9. **管理员权限**：`StarRail.exe` 是 `requireAdministrator`，普通权限的点击会被 UIPI 挡（报
+   `Windows rejected cursor positioning`）→ 用 `ps-helper`，或 `keypress` 走键盘路径。
 
 ## 4. 什么时候必须停手
 
@@ -92,6 +101,10 @@ node ..\game-daily\scripts\run-step.mjs --game sr --all           # 14 步全计
 - 出现 UAC、权限不足、`Windows rejected cursor positioning`
 - 出现付费/删除/重置按钮，或需要判断"体力够不够、要不要继续花"
 - 用户说停
+
+> ⚠️ **「点击无反应」不等于今天放弃**：按 `../game-daily/engine/adapters.md` §8，改用 harness 的
+> computer-use（`mcp__wincu__windows_computer_use_*`）一步一屏手推完剩下的步骤，并在报告里注明哪几步是手推的。
+> 用户 2026-10-23 明确要求：脚本走不通就用 computer-use 把日常做完。
 
 停手时输出：**卡在第几步 / 现在屏幕什么样（截图路径）/ 建议用户怎么做**。
 
