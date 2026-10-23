@@ -1,0 +1,73 @@
+name: game-daily-hi
+version: 1.0.0
+description: >
+  Declarative manifest for the Honkai Impact 3 module of the game-daily family.
+  SKILL.md decides what to load for a given request; this file declares the
+  stable wiring (shared engine docs, scripts, data, state layout).
+
+game:
+  id: hi
+  title: "崩坏3"
+  process: BH3.exe
+  window_class: UnityWndClass
+  install: "E:/Honkai Impact 3/Games/BH3.exe"
+
+always_load:
+  # Shared engine (family layer)
+  - ../game-daily/engine/adapters.md
+  - ../game-daily/engine/calibration.md
+  - ../game-daily/engine/runbook.md
+  - ../game-daily/engine/safety.md
+  # Module-local core
+  - static/core/environment.md
+  - static/core/runbook-hi.md
+
+references:
+  daily: references/hi-daily.json
+  coords: references/hi-coords.json
+  screens: references/hi-screens.md
+  shots_dir: references/screens
+
+scripts:
+  root: ../game-daily/scripts
+  probe: ../game-daily/scripts/probe.mjs
+  coords: ../game-daily/scripts/coords.mjs
+  run_step: ../game-daily/scripts/run-step.mjs
+  peek: ../game-daily/scripts/peek.mjs
+  shot_ps1: ../game-daily/scripts/shot.ps1
+  helper_ps1: ../game-daily/scripts/helper.ps1
+
+state:
+  dir: state
+  coords_local: state/coords.local.json
+  runs: state/runs
+  shots: state/shots
+  helper_pid: state/helper.pid
+
+# Coordinate model: references/hi-coords.json stores relative rx/ry on a
+# 2560x1600 base. state/coords.local.json overrides per id. Never edit the
+# reference file at runtime.
+coords:
+  base: { width: 2560, height: 1600 }
+  override_priority: [local, reference]
+
+axes:
+  adapter:
+    detect: |
+      Look at the tools actually available in this session, in this order:
+      1) DSH: any `mcp__wincu__windows_computer_use_*` tool -> wincu
+      2) Claude Code / other harnesses with native screen+click tools -> native
+      3) otherwise (shell only, e.g. Codex headless) -> ps-helper
+    values:
+      native: "harness-native computer-use tools (screenshot / click / key / type)"
+      wincu: "DSH + dsh-computer-use-win plugin"
+      ps-helper: "PowerShell elevated helper (scripts/helper.ps1) driven by shell"
+  entry:
+    detect: |
+      Already at 主界面? (left rail 任务/活动/福利 visible) -> start at step 1
+      Launcher visible -> run launcher chain first
+      Nothing running -> start launcher, then chain
+    values:
+      ingame: "主界面（左侧竖排：任务/活动/福利/邮件/公告/商城）"
+      launcher: "米哈游启动器窗口"
+      cold: "no BH3.exe"

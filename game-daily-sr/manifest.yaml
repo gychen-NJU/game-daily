@@ -1,0 +1,72 @@
+name: game-daily-sr
+version: 1.0.0
+description: >
+  Declarative manifest for the Star Rail module of the game-daily family.
+  SKILL.md decides what to load for a given request; this file declares the
+  stable wiring (shared engine docs, scripts, data, state layout).
+
+game:
+  id: sr
+  title: "崩坏：星穹铁道"
+  process: StarRail.exe
+  window_class: UnityWndClass
+
+always_load:
+  # Shared engine (family layer, no SKILL.md there on purpose)
+  - ../game-daily/engine/adapters.md
+  - ../game-daily/engine/calibration.md
+  - ../game-daily/engine/runbook.md
+  - ../game-daily/engine/safety.md
+  # Module-local core
+  - static/core/environment.md
+  - static/core/runbook-sr.md
+
+references:
+  daily: references/sr-daily.json
+  coords: references/sr-coords.json
+  screens: references/sr-screens.md
+  shots_dir: references/screens
+
+scripts:
+  root: ../game-daily/scripts
+  probe: ../game-daily/scripts/probe.mjs
+  coords: ../game-daily/scripts/coords.mjs
+  run_step: ../game-daily/scripts/run-step.mjs
+  peek: ../game-daily/scripts/peek.mjs
+  shot_ps1: ../game-daily/scripts/shot.ps1
+  helper_ps1: ../game-daily/scripts/helper.ps1
+
+state:
+  dir: state
+  coords_local: state/coords.local.json
+  runs: state/runs
+  shots: state/shots
+  helper_pid: state/helper.pid
+
+# Coordinate model: references/sr-coords.json stores relative rx/ry on a
+# 2560x1600 base. state/coords.local.json overrides per id. Never edit the
+# reference file at runtime.
+coords:
+  base: { width: 2560, height: 1600 }
+  override_priority: [local, reference]
+
+axes:
+  adapter:
+    detect: |
+      Look at the tools actually available in this session, in this order:
+      1) DSH: any `mcp__wincu__windows_computer_use_*` tool -> wincu
+      2) Claude Code / other harnesses with native screen+click tools -> native
+      3) otherwise (shell only, e.g. Codex headless) -> ps-helper
+    values:
+      native: "harness-native computer-use tools (screenshot / click / key / type)"
+      wincu: "DSH + dsh-computer-use-win plugin"
+      ps-helper: "PowerShell elevated helper (scripts/helper.ps1) driven by shell"
+  entry:
+    detect: |
+      Already in game world? (HUD visible) -> start at step 2
+      Launcher visible -> run launcher chain first
+      Nothing running -> start launcher, then chain
+    values:
+      ingame: "HUD / 长乐天 etc."
+      launcher: "米哈游启动器 window"
+      cold: "no HSR process"

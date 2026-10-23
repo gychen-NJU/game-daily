@@ -1,0 +1,270 @@
+{
+  "game": "hi",
+  "version": 1,
+  "base": { "w": 2560, "h": 1600 },
+  "notes": "崩坏3 每日流程（2026-10-23 实跑版本 V9.1 / V8.1.0_15329）。坐标 id 见 hi-coords.json，首次运行先校准。expect/verify 的文案是给 agent 看图核对用的，不是精确 OCR 断言。",
+  "preflight": {
+    "when": "进程里没有 BH3.exe（cold）或只有启动器（launcher）",
+    "note": "启动链不属于每日流程；只在需要把游戏从桌面拉起来时执行。",
+    "steps": [
+      { "name": "启动启动器", "do": "start", "what": "E:/miHoYo Launcher/launcher.exe", "expect": { "any": ["米哈游启动器"] } },
+      {
+        "name": "找到崩坏3 图标并切页",
+        "locateBy": "icon",
+        "iconRef": "screens/launcher-hi-icon.png",
+        "iconDesc": "白色/银色角色头像 + 左上「10 周年」角标",
+        "confirm": ["悬停出 tooltip「崩坏3」", "点下去后标题变「时序照新」"],
+        "then": { "do": "click", "coord": "launcher.hi_icon" },
+        "warn": "位置不固定：本机在第 3 位。找不到就截图问用户，不要挨个乱点。"
+      },
+      { "name": "开始游戏", "do": "click", "coord": "launcher.start_game" },
+      { "name": "等资源检查", "do": "wait", "ms": 40000, "expect": { "any": ["LOADING", "检查资源更新"] } },
+      { "name": "点击任意处进入", "do": "click", "coord": "game.click_anywhere" },
+      { "name": "进游戏后先领签到", "do": "click", "coord": "signin.claim", "when": "自动弹出「每日签到」面板" }
+    ]
+  },
+  "steps": [
+    {
+      "id": 1,
+      "name": "主界面 → 左上「任务」",
+      "expect": { "any": ["任务", "活动", "福利"] },
+      "actions": [
+        { "do": "shot", "name": "hi01-main" },
+        { "do": "click", "coord": "tasks.open" },
+        { "do": "wait", "ms": 2000 },
+        { "do": "shot", "name": "hi01-tasks" }
+      ],
+      "verify": { "any": ["作战任务", "历练任务", "一键领取"] },
+      "onMismatch": "stop",
+      "note": "主界面左侧竖排第一个图标（带红点）。"
+    },
+    {
+      "id": 2,
+      "name": "作战任务 → 一键领取（登录+体力）",
+      "expect": { "all": ["作战任务"] },
+      "actions": [
+        { "do": "click", "coord": "tasks.onekey_claim" },
+        { "do": "wait", "ms": 2000 },
+        { "do": "shot", "name": "hi02-claim" },
+        { "do": "click", "coord": "dialog.ok" },
+        { "do": "wait", "ms": 1500 }
+      ],
+      "verify": { "any": ["领取奖励", "已领取", "历练值"] },
+      "onMismatch": "retry1",
+      "note": "「一键领取」灰掉说明今天已领过 → 直接下一步。弹窗内容是 体力×60 / bp×50 / 登录奖励×5。"
+    },
+    {
+      "id": 3,
+      "name": "金币采集（前往 → 家园）",
+      "expect": { "any": ["金币采集"] },
+      "actions": [
+        { "do": "shot", "name": "hi03-before-coin" },
+        { "do": "click", "coord": "tasks.coin_go" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi03-after-coin" }
+      ],
+      "verify": { "any": ["家园", "回收委托", "家园福利"] },
+      "onMismatch": "skip",
+      "optional": true,
+      "note": "★实测偏差：本机点「金币采集·前往」进的是「回收委托」页；而金币采集本身通常已由步骤 2 的「一键领取」完成（1/1）。家园里那个「金币标志对应的管」点下去弹的是「体力补充 / 取出体力」，**不是金币采集**，别点混。"
+    },
+    {
+      "id": 4,
+      "name": "家园底部「远征」",
+      "expect": { "any": ["女武神", "远征", "打工", "商店"] },
+      "actions": [
+        { "do": "click", "coord": "nav.expedition" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi04-expedition" }
+      ],
+      "verify": { "any": ["今日远征可用体力", "一键远征"] },
+      "onMismatch": "stop",
+      "note": "进远征页前若还在主界面，先点 nav.home 进家园。"
+    },
+    {
+      "id": 5,
+      "name": "完成一条远征 → 一键远征",
+      "expect": { "all": ["远征"] },
+      "actions": [
+        { "do": "click", "coord": "exp.claim_one" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi05-exp-reward" },
+        { "do": "click", "coord": "dialog.ok" },
+        { "do": "wait", "ms": 1500 },
+        { "do": "click", "coord": "exp.onekey" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi05-exp-dialog" },
+        { "do": "click", "coord": "exp.dispatch" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi05-exp-done" }
+      ],
+      "verify": { "any": ["远征中", "耗时"] },
+      "onMismatch": "stop",
+      "note": "6 条全部变「远征中 · 49 分 50 秒」即成功；体力 480→366。"
+    },
+    {
+      "id": 6,
+      "name": "打工：先领奖励，再一键打工，然后返回",
+      "expect": { "any": ["家园", "远征", "打工"] },
+      "actions": [
+        { "do": "click", "coord": "nav.work" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi06-work" },
+        { "do": "click", "coord": "work.claim_rewards", "when": "「领取奖励」是亮的（有已完成打工）" },
+        { "do": "wait", "ms": 1800 },
+        { "do": "click", "coord": "work.onekey" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi06-work-dialog" },
+        { "do": "click", "coord": "work.confirm" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi06-work-done" },
+        { "do": "click", "coord": "nav.back" },
+        { "do": "wait", "ms": 1800 },
+        { "do": "click", "coord": "nav.back" },
+        { "do": "wait", "ms": 2000 }
+      ],
+      "verify": { "any": ["13 小时", "饭团"] },
+      "onMismatch": "stop",
+      "note": "★顺序很重要：先「领取奖励」再「一键打工」。领取奖励灰着就跳过。打工地图里没有「主菜单」，必须连点两次「返回」才能接下一步。"
+    },
+    {
+      "id": 7,
+      "name": "主菜单 → 任务 → 舰团委托「前往」",
+      "expect": { "any": ["作战任务", "任务"] },
+      "actions": [
+        { "do": "click", "coord": "nav.main_menu" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "click", "coord": "tasks.open" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi07-tasks" },
+        { "do": "click", "coord": "tasks.clan_go" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi07-commission" }
+      ],
+      "verify": { "any": ["回收委托", "委托", "申请新委托"] },
+      "onMismatch": "stop",
+      "note": "tasks.clan_go 未实测（当日该行已完成、没有「前往」）。首次用先截图确认按钮位置。"
+    },
+    {
+      "id": 8,
+      "name": "委托：申请新委托 → 一键申请",
+      "expect": { "any": ["回收委托", "今日剩余次数"] },
+      "actions": [
+        { "do": "click", "coord": "comm.new" },
+        { "do": "wait", "ms": 2000 },
+        { "do": "shot", "name": "hi08-apply" },
+        { "do": "click", "coord": "comm.onekey_apply" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi08-applied" }
+      ],
+      "verify": { "any": ["10/10", "提交"] },
+      "onMismatch": "stop",
+      "note": "申请次数 1/10 → 一键申请后 10/10。"
+    },
+    {
+      "id": 9,
+      "name": "提交 → 提交委托 → 放入舰团奖励池（重复 8 次）",
+      "expect": { "any": ["解除", "提交"] },
+      "actions": [
+        { "do": "click", "coord": "comm.submit" },
+        { "do": "wait", "ms": 1800 },
+        { "do": "shot", "name": "hi09-confirm" },
+        { "do": "click", "coord": "comm.submit_confirm" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "click", "coord": "comm.put_pool" },
+        { "do": "wait", "ms": 1800 }
+      ],
+      "verify": { "any": ["进度", "今日剩余次数"] },
+      "onMismatch": "stop",
+      "repeat": { "times": 8, "note": "第 1 次前先做步骤 8；之后每次循环 = 申请新委托 → 一键申请 → 提交 → 提交委托 → 放入舰团奖励池。剩余次数到 0/8 即停。" },
+      "note": "每次消耗 1 个流体合金（本机 7000+）。判断成功：今日剩余次数 0/8、我的贡献 38。"
+    },
+    {
+      "id": 10,
+      "name": "舰团奖池领奖",
+      "expect": { "any": ["回收委托", "舰团奖池"] },
+      "actions": [
+        { "do": "click", "coord": "side.pool_tab" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi10-pool" },
+        { "do": "click", "coord": "pool.claim" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi10-pool-claim" },
+        { "do": "click", "coord": "dialog.ok" },
+        { "do": "wait", "ms": 1500 }
+      ],
+      "verify": { "any": ["获取委托报酬", "常规发放"] },
+      "onMismatch": "stop",
+      "note": "页签「舰团奖池」在右侧竖排第二个，上面那个是「回收委托」。"
+    },
+    {
+      "id": 11,
+      "name": "主菜单 → 任务 → 材料活动「前往」",
+      "expect": { "any": ["作战任务"] },
+      "actions": [
+        { "do": "click", "coord": "nav.main_menu" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "click", "coord": "tasks.open" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "click", "coord": "tasks.material_go" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi11-material" }
+      ],
+      "verify": { "any": ["材料活动", "一键减负"] },
+      "onMismatch": "stop",
+      "note": ""
+    },
+    {
+      "id": 12,
+      "name": "一键减负 → 减负 → 确定",
+      "expect": { "all": ["材料活动"] },
+      "actions": [
+        { "do": "click", "coord": "material.onekey_reduce" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi12-reduce" },
+        { "do": "click", "coord": "material.reduce_confirm" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi12-reward" },
+        { "do": "click", "coord": "dialog.ok" },
+        { "do": "wait", "ms": 1500 }
+      ],
+      "verify": { "any": ["领取奖励", "减负"] },
+      "onMismatch": "stop",
+      "note": "本机消耗 67 体力，奖励金币 +3618/+83000、结晶×3、材料×1080。"
+    },
+    {
+      "id": 13,
+      "name": "主菜单 → 任务 → 一键领取",
+      "expect": { "any": ["作战任务"] },
+      "actions": [
+        { "do": "click", "coord": "nav.main_menu" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "click", "coord": "tasks.open" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "click", "coord": "tasks.onekey_claim" },
+        { "do": "wait", "ms": 2200 },
+        { "do": "shot", "name": "hi13-claim" },
+        { "do": "click", "coord": "dialog.ok" },
+        { "do": "wait", "ms": 1500 }
+      ],
+      "verify": { "any": ["历练值", "每日历练值"] },
+      "onMismatch": "skip",
+      "note": "判断成功：历练值 250→800、每日历练值 50→600。"
+    },
+    {
+      "id": 14,
+      "name": "点每日历练值最右端 600，领活跃奖励",
+      "expect": { "any": ["每日历练值"] },
+      "actions": [
+        { "do": "click", "coord": "tasks.daily600" },
+        { "do": "wait", "ms": 2500 },
+        { "do": "shot", "name": "hi14-daily600" },
+        { "do": "click", "coord": "dialog.ok" },
+        { "do": "wait", "ms": 1500 }
+      ],
+      "verify": { "any": ["水晶", "×5", "领取奖励"] },
+      "onMismatch": "stop",
+      "note": "进度条最右端的灰蓝 600 图标；本次奖励水晶 5/5/5/10/15。"
+    }
+  ]
+}

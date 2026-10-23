@@ -1,0 +1,15 @@
+# 本机运行态（坐标校准值、截图、日志、助手 pid）不进版本库
+**/state/
+*.local.json
+
+# 依赖与缓存
+node_modules/
+__pycache__/
+*.log
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
