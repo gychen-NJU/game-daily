@@ -165,3 +165,21 @@ game-daily-sr/              星穹铁道模块
 ## License
 
 [MIT](LICENSE) © 2026 gychen-NJU
+---
+
+## English
+
+**game-daily** is a family of agent skills that perform the fixed daily routines of miHoYo games
+inside the real game UI — one verifiable click at a time.
+
+- **What's inside**: a hub (`game-daily/`) that routes by game name + shared engine/scripts, and two
+  modules: `game-daily-hi` (Honkai Impact 3, 14 steps) and `game-daily-sr` (Honkai: Star Rail, 14 steps).
+- **Design**: relative coordinates with per-machine calibration (`state/coords.local.json`, git-ignored),
+  screen-recognition guards (`expect` / `verify` / `onMismatch`), and three interchangeable execution
+  adapters — `native` (host computer-use), `wincu` (DSH plugin) and `ps-helper` (elevated PowerShell,
+  needed when the game runs as administrator and UIPI drops synthetic input).
+- **Install**: copy `game-daily*` folders into your agent skills root (they must stay siblings).
+- **Run**: `node scripts/probe.mjs --game hi --pretty` → `node scripts/coords.mjs calibrate --game hi`
+  → `node scripts/run-step.mjs --game hi --all`.
+- **Dependency**: Node ≥ 18 only (zero npm deps).
+- No game assets, no account data — just UI coordinates and click order. MIT licensed.
