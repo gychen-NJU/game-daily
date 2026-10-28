@@ -63,8 +63,8 @@ node ..\game-daily\scripts\run-step.mjs --game sr --all           # 14 步全计
 | 4 | 委托页领奖励 | 「领取奖励」→ 关弹窗 | `dispatch.claim_reward` |
 | 5 | 领委托 +100 | 回指南再领 | `guide.task_claim` |
 | 6 | 前往「消耗 120 开拓力」 | 点卡下「前往」 | `guide.task_claim_c3`（或 _c2） |
-| 7 | 培养目标 → 第一个材料 → 进入 | 导航 + 「进入」 | `index.cultivate_target`、`index.first_material_enter` |
-| 8 | 次数加到最大 → 挑战 | 「+」×N →「挑战」 | `calyx.plus`、`calyx.challenge` |
+| 7 | 培养目标 → 角色培养（看该角色缺什么） | 「培养目标」→「角色培养」的「前往」→ 记状态 → ESC | `index.cultivate_target`、`index.cultivate_role_enter` |
+| 8 | 进入推荐副本 → 次数拉满 → 挑战 | 已培养完 → 隧洞遗器第一行「进入」；未完成 → 拟造花萼（赤）第一行 | `index.first_material_enter` / `index.calyx_red_first_enter`、`calyx.plus`、`calyx.challenge` |
 | 9 | 开始挑战 → 等结算 | 「开始挑战」+ 等 3 分钟 | `team.start_challenge` |
 | 10 | 退出关卡 | 「退出关卡」 | `result.exit_level` |
 | 11 | 领「消耗 120 开拓力」+200 | ESC → F4 → 领取 | `guide.task_claim` |
@@ -91,8 +91,19 @@ node ..\game-daily\scripts\run-step.mjs --game sr --all           # 14 步全计
    ⇒ **星铁一律 computer-use 优先**：`screenshot(windowTitle="星穹铁道")` → `read_image` 判读 →
    `click` / `keypress` → 再截图复检；`ps-helper` 只用来 `start`/`kill` 进程、发键盘。
    **别因为"ps-helper 点不动"就判定星铁不能自动化**（10-23 我犯过这个错）。
+   **2026-10-28 更正**：helper 只要是**管理员权限**（`Start-Process -Verb RunAs`）且先 `activate <hwnd>`，
+   它的合成鼠标在星铁里能点动（标题页「点击进入」、生存索引里的「前往/进入」实测通过）；
+   非提权的 wincu `click` 才会报 `Windows rejected cursor positioning`。
 9. **管理员权限**：`StarRail.exe` 是 `requireAdministrator`，普通权限的点击会被 UIPI 挡（报
    `Windows rejected cursor positioning`）→ 用 `ps-helper`，或 `keypress` 走键盘路径。
+10. **刷什么由「角色培养」状态决定（2026-10-28 用户纠正）**：生存索引右上的「角色培养」行带「前往」，
+    点它是进**角色详情**（看该角色命途与还缺什么），不是材料列表。分叉规则：
+    - 该行显示 ✅「已完成等级、行迹的提升」→ 打**推荐的遗器**：点「隧洞遗器推荐」第一行「进入」
+      （`index.first_material_enter`，40 开拓力/把）。本机真珠（欢愉、80/80、行迹满）就是这种。
+    - 未完成 → 才打**角色材料**：左侧「拟造花萼（赤）」（行迹材料，按命途分组：欢愉→欢愉之蕾、
+      毁灭→毁灭之蕾…10 开拓力/把，`index.calyx_red` → `index.calyx_red_first_enter`）或
+      「凝滞虚影」（晋阶材料）。
+    - 别把「培养角色」当成材料列表，也别固定只刷其中一种；副本页右下「快速刷取」不要点。
 
 ## 4. 什么时候必须停手
 

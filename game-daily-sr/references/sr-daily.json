@@ -1,40 +1,111 @@
 {
   "game": "sr",
   "version": 1,
-  "base": { "w": 2560, "h": 1600 },
+  "base": {
+    "w": 2560,
+    "h": 1600
+  },
   "notes": "崩坏：星穹铁道 每日流程（2026-10-23 实跑版本 CNPRODWin4.6.0）。坐标 id 见 sr-coords.json；首次运行先校准。expect/verify 里的文案用于让 agent 看图核对，不是精确 OCR 断言。",
   "preflight": {
     "when": "进程里没有 StarRail.exe（cold）或只有启动器（launcher）",
     "note": "启动链不属于 14 步日常；只在需要从桌面把游戏拉起来时执行。",
     "steps": [
-      { "name": "启动启动器", "do": "start", "what": "E:/miHoYo Launcher/launcher.exe", "expect": { "any": ["米哈游启动器"] } },
+      {
+        "name": "启动启动器",
+        "do": "start",
+        "what": "E:/miHoYo Launcher/launcher.exe",
+        "expect": {
+          "any": [
+            "米哈游启动器"
+          ]
+        }
+      },
       {
         "name": "找到星铁图标并切到星铁页",
         "locateBy": "icon",
         "iconRef": "screens/launcher-sr-icon.png",
         "iconDesc": "粉发角色 wink 笑 + 异色瞳 + 圆角方形 + 底部 muHoYo",
-        "confirm": ["悬停出 tooltip「崩坏：星穹铁道」", "点下去后页面标题变「月升之前，与兽共舞」"],
-        "then": { "do": "click", "coord": "launcher.starrail_icon" },
+        "confirm": [
+          "悬停出 tooltip「崩坏：星穹铁道」",
+          "点下去后页面标题变「月升之前，与兽共舞」"
+        ],
+        "then": {
+          "do": "click",
+          "coord": "launcher.starrail_icon"
+        },
         "warn": "位置不固定：排第几位取决于装了几个米哈游游戏。找不到就截图问用户，不要挨个乱点。"
       },
-      { "name": "开始游戏", "do": "click", "coord": "launcher.start_game" },
-      { "name": "等标题界面", "do": "wait", "ms": 45000, "expect": { "any": ["点击进入", "公告"] } },
-      { "name": "点击进入", "do": "click", "coord": "game.click_enter" },
-      { "name": "登录异常重试（一次性）", "when": "屏幕上出现「登录异常…1001_1」", "do": "click", "coord": "popup.close_blank", "then": { "do": "click", "coord": "game.click_enter" } }
+      {
+        "name": "开始游戏",
+        "do": "click",
+        "coord": "launcher.start_game"
+      },
+      {
+        "name": "等标题界面",
+        "do": "wait",
+        "ms": 45000,
+        "expect": {
+          "any": [
+            "点击进入",
+            "公告"
+          ]
+        }
+      },
+      {
+        "name": "点击进入",
+        "do": "click",
+        "coord": "game.click_enter"
+      },
+      {
+        "name": "登录异常重试（一次性）",
+        "when": "屏幕上出现「登录异常…1001_1」",
+        "do": "click",
+        "coord": "popup.close_blank",
+        "then": {
+          "do": "click",
+          "coord": "game.click_enter"
+        }
+      }
     ]
   },
-  "steps": [    {
+  "steps": [
+    {
       "id": 1,
       "name": "列车补给（可选：有弹窗才领）",
-      "expect": { "any": ["列车补给", "点击领取今日补给"] },
+      "expect": {
+        "any": [
+          "列车补给",
+          "点击领取今日补给"
+        ]
+      },
       "actions": [
-        { "do": "shot", "name": "step01-train-supply" },
-        { "do": "click", "coord": "trainsupply.claim" },
-        { "do": "wait", "ms": 1300 },
-        { "do": "click", "coord": "popup.close_blank" },
-        { "do": "wait", "ms": 700 }
+        {
+          "do": "shot",
+          "name": "step01-train-supply"
+        },
+        {
+          "do": "click",
+          "coord": "trainsupply.claim"
+        },
+        {
+          "do": "wait",
+          "ms": 1300
+        },
+        {
+          "do": "click",
+          "coord": "popup.close_blank"
+        },
+        {
+          "do": "wait",
+          "ms": 700
+        }
       ],
-      "verify": { "any": ["获得物品", "列车补给"] },
+      "verify": {
+        "any": [
+          "获得物品",
+          "列车补给"
+        ]
+      },
       "onMismatch": "skip",
       "optional": true,
       "note": "没有这个弹窗就直接跳过（optional）。trainsupply.claim 未在本机校准过，先看 step01 截图确认按钮位置，必要时 coords.mjs set 覆盖。"
@@ -42,213 +113,613 @@
     {
       "id": 2,
       "name": "按 F4 打开指南（星际和平指南 / 每日实训）",
-      "expect": { "any": ["星际和平指南", "每日实训"] },
+      "expect": {
+        "any": [
+          "星际和平指南",
+          "每日实训"
+        ]
+      },
       "actions": [
-        { "do": "shot", "name": "step02-before-f4" },
-        { "do": "key", "vk": 115 },
-        { "do": "wait", "ms": 1600 },
-        { "do": "shot", "name": "step02-guide" }
+        {
+          "do": "shot",
+          "name": "step02-before-f4"
+        },
+        {
+          "do": "key",
+          "vk": 115
+        },
+        {
+          "do": "wait",
+          "ms": 1600
+        },
+        {
+          "do": "shot",
+          "name": "step02-guide"
+        }
       ],
-      "verify": { "any": ["每日实训", "活跃度"] },
+      "verify": {
+        "any": [
+          "每日实训",
+          "活跃度"
+        ]
+      },
       "onMismatch": "retry1",
       "note": "如果当前有别的面板开着（生存索引、技能、背包…），F4 不生效：先 key 27（ESC）关掉面板再按 F4。"
     },
     {
       "id": 3,
       "name": "领「登录游戏」+100 活跃度",
-      "expect": { "all": ["每日实训"] },
+      "expect": {
+        "all": [
+          "每日实训"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "guide.task_claim" },
-        { "do": "wait", "ms": 1300 },
-        { "do": "shot", "name": "step03-login-claim" }
+        {
+          "do": "click",
+          "coord": "guide.task_claim"
+        },
+        {
+          "do": "wait",
+          "ms": 1300
+        },
+        {
+          "do": "shot",
+          "name": "step03-login-claim"
+        }
       ],
-      "verify": { "any": ["本日活跃度已满", "星际和平指南"] },
+      "verify": {
+        "any": [
+          "本日活跃度已满",
+          "星际和平指南"
+        ]
+      },
       "onMismatch": "stop",
       "note": "领完后活跃度应从 0 → 100，按钮变成「本日活跃度已满」。按钮位置随卡片滚动变化，先看截图。"
     },
     {
       "id": 4,
       "name": "点「委托」前往 → 领委托奖励（无一键派遣时自动续派）",
-      "expect": { "any": ["每日实训"] },
+      "expect": {
+        "any": [
+          "每日实训"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "guide.task_claim" },
-        { "do": "wait", "ms": 2600 },
-        { "do": "shot", "name": "step04-dispatch" },
-        { "do": "click", "coord": "dispatch.claim_reward" },
-        { "do": "wait", "ms": 2000 },
-        { "do": "shot", "name": "step04-reward" },
-        { "do": "click", "coord": "popup.close_blank" },
-        { "do": "wait", "ms": 900 }
+        {
+          "do": "click",
+          "coord": "guide.task_claim"
+        },
+        {
+          "do": "wait",
+          "ms": 2600
+        },
+        {
+          "do": "shot",
+          "name": "step04-dispatch"
+        },
+        {
+          "do": "click",
+          "coord": "dispatch.claim_reward"
+        },
+        {
+          "do": "wait",
+          "ms": 2000
+        },
+        {
+          "do": "shot",
+          "name": "step04-reward"
+        },
+        {
+          "do": "click",
+          "coord": "popup.close_blank"
+        },
+        {
+          "do": "wait",
+          "ms": 900
+        }
       ],
-      "verify": { "any": ["进行中的委托", "委托派遣中"] },
+      "verify": {
+        "any": [
+          "进行中的委托",
+          "委托派遣中"
+        ]
+      },
       "onMismatch": "stop",
       "note": "卡上的按钮可能是「领取」也可能是「前往」，看截图决定；本机实测领取后委托自动续派（4/4，0/30 小时），没有「一键派遣」按钮可点就跳过。"
     },
     {
       "id": 5,
       "name": "回指南领「派遣/收取委托奖励」+100",
-      "expect": { "any": ["每日实训"] },
+      "expect": {
+        "any": [
+          "每日实训"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "guide.task_claim" },
-        { "do": "wait", "ms": 1300 },
-        { "do": "shot", "name": "step05-dispatch-claim" }
+        {
+          "do": "click",
+          "coord": "guide.task_claim"
+        },
+        {
+          "do": "wait",
+          "ms": 1300
+        },
+        {
+          "do": "shot",
+          "name": "step05-dispatch-claim"
+        }
       ],
-      "verify": { "any": ["本日活跃度已满", "200"] },
+      "verify": {
+        "any": [
+          "本日活跃度已满",
+          "200"
+        ]
+      },
       "onMismatch": "stop",
       "note": "从委托页返回指南后，这张卡通常回到第一张；若不在第一位，先横向滚动或按截图重新取点。"
     },
     {
       "id": 6,
       "name": "前往「累计消耗 120 点开拓力」",
-      "expect": { "any": ["每日实训"] },
+      "expect": {
+        "any": [
+          "每日实训"
+        ]
+      },
       "actions": [
-        { "do": "shot", "name": "step06-before" },
-        { "do": "click", "coord": "guide.task_claim_c3" },
-        { "do": "wait", "ms": 3200 },
-        { "do": "shot", "name": "step06-materials" }
+        {
+          "do": "shot",
+          "name": "step06-before"
+        },
+        {
+          "do": "click",
+          "coord": "guide.task_claim_c3"
+        },
+        {
+          "do": "wait",
+          "ms": 3200
+        },
+        {
+          "do": "shot",
+          "name": "step06-materials"
+        }
       ],
-      "verify": { "any": ["生存索引", "培养目标"] },
+      "verify": {
+        "any": [
+          "生存索引",
+          "培养目标"
+        ]
+      },
       "onMismatch": "retry1",
       "note": "这张卡可能落在第 2/3 位（用 _c2 / _c3 两个候选）；点错会进别的页面，退回指南重来即可。"
     },
     {
       "id": 7,
-      "name": "培养目标 → 第一个推荐材料 → 进入副本",
-      "expect": { "any": ["生存索引"] },
+      "name": "培养目标 → 角色培养（看该角色缺什么）",
+      "expect": {
+        "any": [
+          "生存索引",
+          "星际和平指南",
+          "角色详情"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "index.cultivate_target" },
-        { "do": "wait", "ms": 1900 },
-        { "do": "shot", "name": "step07-cultivate" },
-        { "do": "click", "coord": "index.first_material_enter" },
-        { "do": "wait", "ms": 3200 },
-        { "do": "shot", "name": "step07-dungeon" }
+        {
+          "do": "click",
+          "coord": "index.cultivate_target"
+        },
+        {
+          "do": "wait",
+          "ms": 600
+        },
+        {
+          "do": "shot"
+        },
+        {
+          "do": "wait",
+          "ms": 1400
+        },
+        {
+          "do": "click",
+          "coord": "index.cultivate_role_enter"
+        },
+        {
+          "do": "wait",
+          "ms": 2200
+        },
+        {
+          "do": "shot"
+        },
+        {
+          "do": "key",
+          "vk": 27
+        },
+        {
+          "do": "wait",
+          "ms": 1400
+        },
+        {
+          "do": "shot"
+        }
       ],
-      "verify": { "any": ["侵蚀隧洞", "拟造花萼"] },
+      "verify": {
+        "any": [
+          "生存索引",
+          "培养目标",
+          "角色详情"
+        ]
+      },
       "onMismatch": "stop",
-      "note": "本机「第一个推荐材料」是隧洞遗器推荐第一条（40 开拓力/把）。若想刷花萼（经验/信用点，10/把），改点左侧「拟造花萼（金）」。"
+      "note": "点「角色培养」的「前往」进入角色详情页（看到角色名/命途/等级即算进过「培养角色」）；记下右上「角色培养」那一行是 ✅「已完成等级、行迹的提升」还是未完成，然后 ESC 回生存索引。分叉：已完成 → 下一步点隧洞遗器的「进入」；未完成 → 改点 index.calyx_red_first_enter（拟造花萼（赤）行迹材料）。本步不点任何副本的「挑战」。"
     },
     {
       "id": 8,
-      "name": "挑战次数加到最大，然后点「挑战」",
-      "expect": { "any": ["侵蚀隧洞", "拟造花萼"] },
+      "name": "进入推荐副本（遗器推荐 / 行迹材料二选一）→ 次数拉满 → 挑战",
+      "expect": {
+        "any": [
+          "侵蚀隧洞",
+          "拟造花萼",
+          "隧洞遗器",
+          "遗器"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "calyx.plus" },
-        { "do": "wait", "ms": 400 },
-        { "do": "click", "coord": "calyx.plus" },
-        { "do": "wait", "ms": 400 },
-        { "do": "click", "coord": "calyx.plus" },
-        { "do": "wait", "ms": 400 },
-        { "do": "click", "coord": "calyx.plus" },
-        { "do": "wait", "ms": 400 },
-        { "do": "click", "coord": "calyx.plus" },
-        { "do": "wait", "ms": 800 },
-        { "do": "shot", "name": "step08-max-count" },
-        { "do": "click", "coord": "calyx.challenge" },
-        { "do": "wait", "ms": 3200 },
-        { "do": "shot", "name": "step08-team" }
+        {
+          "do": "click",
+          "coord": "index.first_material_enter"
+        },
+        {
+          "do": "wait",
+          "ms": 2600
+        },
+        {
+          "do": "shot"
+        },
+        {
+          "do": "click",
+          "coord": "calyx.plus"
+        },
+        {
+          "do": "wait",
+          "ms": 500
+        },
+        {
+          "do": "click",
+          "coord": "calyx.plus"
+        },
+        {
+          "do": "wait",
+          "ms": 500
+        },
+        {
+          "do": "click",
+          "coord": "calyx.plus"
+        },
+        {
+          "do": "wait",
+          "ms": 500
+        },
+        {
+          "do": "click",
+          "coord": "calyx.plus"
+        },
+        {
+          "do": "wait",
+          "ms": 500
+        },
+        {
+          "do": "click",
+          "coord": "calyx.plus"
+        },
+        {
+          "do": "wait",
+          "ms": 600
+        },
+        {
+          "do": "shot"
+        },
+        {
+          "do": "click",
+          "coord": "calyx.challenge"
+        },
+        {
+          "do": "wait",
+          "ms": 900
+        },
+        {
+          "do": "shot"
+        }
       ],
-      "verify": { "any": ["队伍", "开始挑战"] },
+      "verify": {
+        "any": [
+          "队伍",
+          "开始挑战"
+        ]
+      },
       "onMismatch": "stop",
-      "note": "上限本机为 6（受开拓力限制）。每点一次次数应 +1；若数字没变，先停下核对 calyx.plus 的 y（实际比视觉中心略高）。"
+      "note": "分叉落地：① 上一步「角色培养」显示 ✅ 已完成 → 本步点「隧洞遗器推荐」第一行「进入」(index.first_material_enter，本机 40 拓荒力/把)；② 未完成 → 把第一下改点 index.calyx_red_first_enter（拟造花萼（赤）第一行，行迹材料，10 拓荒力/把）；③ 若两行都对不上（命途不同）→ 在拟造花萼（赤）列表里挑与该角色命途一致的那一行。进入后再把次数加到上限（受拓荒力限制，本机上限 6）；不点「快速刷取」。"
     },
     {
       "id": 9,
       "name": "开始挑战 → 等自动战斗结算",
-      "expect": { "any": ["队伍"] },
+      "expect": {
+        "any": [
+          "队伍"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "team.start_challenge" },
-        { "do": "wait", "ms": 6000 },
-        { "do": "shot", "name": "step09-battle-start" }
+        {
+          "do": "click",
+          "coord": "team.start_challenge"
+        },
+        {
+          "do": "wait",
+          "ms": 6000
+        },
+        {
+          "do": "shot",
+          "name": "step09-battle-start"
+        }
       ],
-      "verify": { "any": ["挑战成功", "战斗耗时"] },
+      "verify": {
+        "any": [
+          "挑战成功",
+          "战斗耗时"
+        ]
+      },
       "onMismatch": "stop",
       "note": "6 波自动战斗实测约 2 分 50 秒。发完动作后隔 3 分钟再截图；超过 10 分钟仍未出现「挑战成功」→ 停手报告。"
     },
     {
       "id": 10,
       "name": "结算页点「退出关卡」",
-      "expect": { "any": ["挑战成功"] },
+      "expect": {
+        "any": [
+          "挑战成功"
+        ]
+      },
       "actions": [
-        { "do": "shot", "name": "step10-result" },
-        { "do": "click", "coord": "result.exit_level" },
-        { "do": "wait", "ms": 3200 },
-        { "do": "shot", "name": "step10-exited" }
+        {
+          "do": "shot",
+          "name": "step10-result"
+        },
+        {
+          "do": "click",
+          "coord": "result.exit_level"
+        },
+        {
+          "do": "wait",
+          "ms": 3200
+        },
+        {
+          "do": "shot",
+          "name": "step10-exited"
+        }
       ],
-      "verify": { "any": ["侵蚀隧洞", "生存索引"] },
+      "verify": {
+        "any": [
+          "侵蚀隧洞",
+          "生存索引"
+        ]
+      },
       "onMismatch": "stop",
       "note": "不要点旁边的「再来一次」（会再刷一遍耗体力）。"
     },
     {
       "id": 11,
       "name": "领「累计消耗 120 点开拓力」+200",
-      "expect": { "any": ["侵蚀隧洞", "生存索引"] },
+      "expect": {
+        "any": [
+          "侵蚀隧洞",
+          "生存索引"
+        ]
+      },
       "actions": [
-        { "do": "key", "vk": 27 },
-        { "do": "wait", "ms": 900 },
-        { "do": "key", "vk": 115 },
-        { "do": "wait", "ms": 1900 },
-        { "do": "shot", "name": "step11-guide" },
-        { "do": "click", "coord": "guide.task_claim" },
-        { "do": "wait", "ms": 1300 },
-        { "do": "shot", "name": "step11-power-claim" }
+        {
+          "do": "key",
+          "vk": 27
+        },
+        {
+          "do": "wait",
+          "ms": 900
+        },
+        {
+          "do": "key",
+          "vk": 115
+        },
+        {
+          "do": "wait",
+          "ms": 1900
+        },
+        {
+          "do": "shot",
+          "name": "step11-guide"
+        },
+        {
+          "do": "click",
+          "coord": "guide.task_claim"
+        },
+        {
+          "do": "wait",
+          "ms": 1300
+        },
+        {
+          "do": "shot",
+          "name": "step11-power-claim"
+        }
       ],
-      "verify": { "any": ["本日活跃度已满", "300"] },
+      "verify": {
+        "any": [
+          "本日活跃度已满",
+          "300"
+        ]
+      },
       "onMismatch": "stop",
       "note": "退出关卡后可能还在面板里，先 ESC 再 F4。领完活跃度 200 → 400。"
     },
     {
       "id": 12,
       "name": "点进度条最右 500 礼盒，领满活跃度奖励",
-      "expect": { "all": ["每日实训"] },
+      "expect": {
+        "all": [
+          "每日实训"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "guide.gift500" },
-        { "do": "wait", "ms": 1600 },
-        { "do": "shot", "name": "step12-gift500" },
-        { "do": "click", "coord": "popup.close_blank" },
-        { "do": "wait", "ms": 900 }
+        {
+          "do": "click",
+          "coord": "guide.gift500"
+        },
+        {
+          "do": "wait",
+          "ms": 1600
+        },
+        {
+          "do": "shot",
+          "name": "step12-gift500"
+        },
+        {
+          "do": "click",
+          "coord": "popup.close_blank"
+        },
+        {
+          "do": "wait",
+          "ms": 900
+        }
       ],
-      "verify": { "any": ["获得物品", "星琼"] },
+      "verify": {
+        "any": [
+          "获得物品",
+          "星琼"
+        ]
+      },
       "onMismatch": "stop",
       "note": "需要活跃度到 500（本机路径：100 + 100 + 200 + 100）。不够 500 时礼盒点不动 → 先补完剩余任务。"
     },
     {
       "id": 13,
       "name": "F2 无名勋礼 → 任务页 → 一键领取",
-      "expect": { "any": ["每日实训", "侵蚀隧洞"] },
+      "expect": {
+        "any": [
+          "每日实训",
+          "侵蚀隧洞"
+        ]
+      },
       "actions": [
-        { "do": "key", "vk": 27 },
-        { "do": "wait", "ms": 900 },
-        { "do": "key", "vk": 113 },
-        { "do": "wait", "ms": 2200 },
-        { "do": "shot", "name": "step13-honor" },
-        { "do": "click", "coord": "honor.tab_mission" },
-        { "do": "wait", "ms": 1300 },
-        { "do": "shot", "name": "step13-missions" },
-        { "do": "click", "coord": "honor.onekey_mission" },
-        { "do": "wait", "ms": 1600 },
-        { "do": "shot", "name": "step13-claimed" },
-        { "do": "click", "coord": "popup.close_blank" },
-        { "do": "wait", "ms": 900 }
+        {
+          "do": "key",
+          "vk": 27
+        },
+        {
+          "do": "wait",
+          "ms": 900
+        },
+        {
+          "do": "key",
+          "vk": 113
+        },
+        {
+          "do": "wait",
+          "ms": 2200
+        },
+        {
+          "do": "shot",
+          "name": "step13-honor"
+        },
+        {
+          "do": "click",
+          "coord": "honor.tab_mission"
+        },
+        {
+          "do": "wait",
+          "ms": 1300
+        },
+        {
+          "do": "shot",
+          "name": "step13-missions"
+        },
+        {
+          "do": "click",
+          "coord": "honor.onekey_mission"
+        },
+        {
+          "do": "wait",
+          "ms": 1600
+        },
+        {
+          "do": "shot",
+          "name": "step13-claimed"
+        },
+        {
+          "do": "click",
+          "coord": "popup.close_blank"
+        },
+        {
+          "do": "wait",
+          "ms": 900
+        }
       ],
-      "verify": { "any": ["一键领取", "勋礼等级", "30"] },
+      "verify": {
+        "any": [
+          "一键领取",
+          "勋礼等级",
+          "30"
+        ]
+      },
       "onMismatch": "stop",
       "note": "原清单 12→14 跳号（已确认没有第 13 步），此步由「F2 → 顶部中间第 2 个图标 → 一键领取」整理而来。失败最常见原因：一键领取的 y 用错（实际 ≈1300）。"
     },
     {
       "id": 14,
       "name": "无名勋礼 → 奖励页 → 一键领取",
-      "expect": { "any": ["无名勋礼", "任务"] },
+      "expect": {
+        "any": [
+          "无名勋礼",
+          "任务"
+        ]
+      },
       "actions": [
-        { "do": "click", "coord": "honor.tab_reward" },
-        { "do": "wait", "ms": 1300 },
-        { "do": "shot", "name": "step14-rewards" },
-        { "do": "click", "coord": "honor.onekey_reward" },
-        { "do": "wait", "ms": 1600 },
-        { "do": "shot", "name": "step14-claimed" },
-        { "do": "click", "coord": "popup.close_blank" },
-        { "do": "wait", "ms": 900 }
+        {
+          "do": "click",
+          "coord": "honor.tab_reward"
+        },
+        {
+          "do": "wait",
+          "ms": 1300
+        },
+        {
+          "do": "shot",
+          "name": "step14-rewards"
+        },
+        {
+          "do": "click",
+          "coord": "honor.onekey_reward"
+        },
+        {
+          "do": "wait",
+          "ms": 1600
+        },
+        {
+          "do": "shot",
+          "name": "step14-claimed"
+        },
+        {
+          "do": "click",
+          "coord": "popup.close_blank"
+        },
+        {
+          "do": "wait",
+          "ms": 900
+        }
       ],
-      "verify": { "any": ["获得物品", "命运的足迹", "星琼"] },
+      "verify": {
+        "any": [
+          "获得物品",
+          "命运的足迹",
+          "星琼"
+        ]
+      },
       "onMismatch": "stop",
       "note": "旁边「解锁无名客的勋礼」（¥）是付费按钮，**绝不点**。"
     }
