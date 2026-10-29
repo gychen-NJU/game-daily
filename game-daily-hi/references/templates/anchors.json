@@ -1,0 +1,27 @@
+{
+  "_readme": "锚点+偏移（R9）：同形按钮（一屏多个「前往」）不能靠坐标先验点名，先定位唯一锚点模板，再按 offset 点目标。offset 单位 = 1080p 客户区像素；匹配到 scale 时按 scale 缩放。锚点必须是「永远在、且唯一」的东西（行标题、图标），目标按钮可以是灰的。",
+  "tasks.coin_go": {
+    "anchor": "tasks.coin_go.anchor.png",
+    "dx": 402,
+    "dy": 98,
+    "note": "作战任务页「金币采集」行标题 → 同行右侧「前往」（1080p 实测：标题中心 (582,283)，按钮中心 (984,381)）"
+  },
+  "tasks.clan_go": {
+    "anchor": "tasks.clan_go.anchor.png",
+    "dx": 402,
+    "dy": 98,
+    "note": "「舰团委托」行标题 (581,502) → 前往 (984,600)"
+  },
+  "tasks.material_go": {
+    "anchor": "tasks.material_go.anchor.png",
+    "dx": 402,
+    "dy": 98,
+    "note": "「材料活动」行标题 (1361,502) → 前往 (1763,600)"
+  },
+  "tasks.dorm_work_go": {
+    "anchor": "tasks.dorm_work_go.anchor.png",
+    "dx": 402,
+    "dy": 98,
+    "note": "「家园打工」行标题 (1361,283) → 前往 (1763,381)"
+  }
+}

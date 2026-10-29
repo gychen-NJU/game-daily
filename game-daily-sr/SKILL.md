@@ -7,8 +7,9 @@ description: >-
   当用户说"帮我清星铁日常 / 星穹铁道每日 / 星铁日常 / 做一下每日任务 / 清体力 / 打本 /
   领活跃度 / 无名勋礼 / 每日实训 / 崩坏星穹铁道日常"等，或要求"按文档帮我操作一遍"时使用。
   自动识别当前环境有没有电脑操作能力：DSH 需要 dsh-computer-use-win 插件，Claude Code /
-  Codex 等自带 computer-use 则免装；都没有时用 PowerShell 提权助手兜底。坐标只作参考，
-  首次在本机运行会先校准并记录。
+  Codex 等自带 computer-use 则免装；都没有时用 PowerShell 提权助手兜底。
+  点击位置一律来自视觉定位（模板 score ≥ 0.72）；**本模块目前没有模板资产**（references/templates/
+  未提供）→ 缺模板必须停手或改用 computer-use 手推；坐标表只作搜索先验，禁止直接按坐标点击。
 ---
 
 # 星穹铁道 · 每日日常
@@ -27,12 +28,15 @@ description: >-
    - DSH 且能看到 `mcp__wincu__windows_computer_use_*` → 用 **wincu**
    - 都没有 → 用 **ps-helper**（PowerShell 提权助手，弹一次 UAC）
    细节与安装/降级决策树：`static/core/environment.md`；协议细节：`../game-daily/engine/adapters.md`。
-3. **第一次在本机跑 → 先校准坐标**
+3. **准备搜索先验 + 确认有没有模板**（不是"校准坐标"）
    ```powershell
-   node ..\game-daily\scripts\coords.mjs calibrate --game sr
-   node ..\game-daily\scripts\coords.mjs set <id> <x> <y> --game sr --note "什么界面下量的"
+   node ..\game-daily\scripts\coords.mjs calibrate --game sr        # 给先验打分辨率标签（R5）
+   node ..\game-daily\scripts\coords.mjs resolve <id> --game sr --screen <客户区WxH> --json
    ```
-   规则见 `../game-daily/engine/calibration.md`。**没校准就用默认相对坐标，点不中很正常，不要连点。**
+   - 先验只用来给 `locate --region` 限定搜索窗，**不是点击坐标**（R4，规则见 `../game-daily/SKILL.md` §2.2）。
+   - ⚠️ **本模块还没有模板资产**：`references/templates/` 不存在 → 现在**不能**用脚本自动点。
+     日常只能按 `../game-daily/SKILL.md` §2.4 用 computer-use 一格一屏手推；要自动化得先逐 id 补模板。
+   - 跑之前把客户区 / DPI / 游戏内 UI 缩放记进 `state\env-<date>.json`（见 `../game-daily/SKILL.md` §2.1）。
 
 ## 0.5 不在游戏里？先跑启动链（preflight）
 
@@ -46,16 +50,18 @@ description: >-
 node ..\game-daily\scripts\run-step.mjs --game sr --step 3        # 打印计划（不动鼠标）
 node ..\game-daily\scripts\run-step.mjs --game sr --all           # 14 步全计划
 ```
-- **计划是给你看的**：里面每个动作都带解析后的绝对坐标和来源（local / relative）。
+- **计划是给你看的**：每个动作带**目标 id** + 先验坐标（`local` / `relative`）。先验只能当 `--region` 的候选中心，
+  **不能据此点击**（R4）；真正的点击坐标来自 `locate`。
 - 用你的适配器执行；每步执行完**再截一张图**，按步骤的 `verify` 判定成功。
-- 机械动作也可以交给脚本（仅 ps-helper 路径）：`--ps`；它会先 `key 18 → activate <hwnd>` 再点，避免前台被抢。
-- 记账：`--ps` 会自动写 `state/runs/`；手工执行时自己补一条也行。回看：`node ..\game-daily\scripts\peek.mjs --game sr`。
+- `--ps` 会先 `key 18 → activate <hwnd>` 再**按先验坐标直接点**——违反 R4，只作演练/探查，日常流程不用它发点击。
+- 记账：把 `locate` 的 `score / scale / cx / cy` 与 before/after 图记进 `state/runs/`；
+  回看：`node ..\game-daily\scripts\peek.mjs --game sr`。
 
-五拍：**截图 → 认屏 → 解析坐标 → 执行 → 复检**。任何一拍不对就停（见 §4）。
+五拍：**截图 → 认屏 → 定位（模板 / 锚点+偏移）→ 点击 → 复检**。任何一拍不对就停（见 §4）。
 
 ## 2. 14 步一览
 
-| # | 步骤 | 关键动作 | 关键坐标 id |
+| # | 步骤 | 关键动作 | 目标 id（点击需模板） |
 |---|---|---|---|
 | 1 | 列车补给（可选） | 有弹窗才领 | `trainsupply.claim`（未校准） |
 | 2 | F4 打开指南 | `key 115` | — |
@@ -72,8 +78,12 @@ node ..\game-daily\scripts\run-step.mjs --game sr --all           # 14 步全计
 | 13 | 无名勋礼·任务一键领取 | F2 → 第 2 个图标 → 一键领取 | `honor.tab_mission`、`honor.onekey_mission` |
 | 14 | 无名勋礼·奖励一键领取 | 第 1 个图标 → 一键领取 | `honor.tab_reward`、`honor.onekey_reward` |
 
-完整机器可读定义：`references/sr-daily.json`；坐标表：`references/sr-coords.json`；
+完整机器可读定义：`references/sr-daily.json`；坐标表（**只作搜索先验**）：`references/sr-coords.json`；
 认屏特征：`references/sr-screens.md`；参考图：`references/screens/`。
+
+> ⚠️ **本模块尚无 `references/templates/`**：上表 id 目前只表示"目标是谁"，没有模板就不能用 `locate` 自动点。
+> 现状：日常只能 computer-use 手推（`../game-daily/SKILL.md` §2.4）；要恢复脚本化，先逐 id 补模板
+> （同形按钮如 `guide.task_claim`、`calyx.plus` 还需 `<id>.anchor.png` + 1080p offset，见 R9）。
 
 ## 3. 星铁特有的坑（每一条都实跑踩过）
 
@@ -108,6 +118,7 @@ node ..\game-daily\scripts\run-step.mjs --game sr --all           # 14 步全计
 ## 4. 什么时候必须停手
 
 - 截图与 `expect` 对不上（版本更新 / 弹窗挡路 / 界面被改）
+- `locate` 找不到目标（`found=false` 或 `score < 0.72`）且重试一次仍失败，或该步**模板缺失**（R3 / R7）
 - 同一坐标连点两次画面没变化
 - 出现 UAC、权限不足、`Windows rejected cursor positioning`
 - 出现付费/删除/重置按钮，或需要判断"体力够不够、要不要继续花"

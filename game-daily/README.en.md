@@ -11,10 +11,11 @@ provides the docs, scripts and data formats shared by all modules.
 | --- | --- |
 | `SKILL.md` | Routing table: Honkai Impact 3 / HI3 → `game-daily-hi`; Star Rail / SR → `game-daily-sr`; ask if the game is not named |
 | `engine/adapters.md` | Three execution paths (native / wincu / ps-helper) and the fallback tree |
-| `engine/calibration.md` | Calibration protocol (first run, resolution change, re-check) |
-| `engine/runbook.md` | The five-beat execution loop and stop conditions |
+| `engine/calibration.md` | Priors and template self-check (coordinates are search priors only; clicks come from visual location) |
+| `engine/layout.md` | Anchor layout model (`anchor + offset × scale`; offset units are 1080p client pixels) |
+| `engine/runbook.md` | The five-beat loop (shot → recognise → locate → click → re-check) and stop conditions |
 | `engine/safety.md` | Safety and privacy red lines |
-| `engine/coords.schema.json` | Coordinate map format: `id → {rx, ry, desc, note, absolute?}` |
+| `engine/coords.schema.json` | Coordinate map format: `id → {rx, ry, desc, note, absolute?, screen?}` (R5 requires `screen`) |
 | `engine/daily.schema.json` | Routine format: `steps[] → {id, title, expect, actions[], verify, onMismatch}` |
 
 ## Scripts
@@ -35,24 +36,46 @@ Prints: OS / Node / physical screen size (DPI aware) / foreground window / launc
 
 ```powershell
 node scripts/coords.mjs check     --game hi          # health: missing / uncalibrated
-node scripts/coords.mjs resolve   --game hi tasks.open
-node scripts/coords.mjs set       --game hi tasks.open 148 307 --note "top-left Tasks"
-node scripts/coords.mjs calibrate --game hi          # interactive, writes state/coords.local.json
+node scripts/coords.mjs resolve   tasks.open --game hi --screen 1920x1080 --json
+node scripts/coords.mjs set       tasks.open 148 307 --game hi --note "top-left Tasks"
+node scripts/coords.mjs calibrate --game hi          # interactive: tag priors (still needs a template match to click)
 ```
 
-Resolution order: `state/coords.local.json` (measured on this machine) → `references/<m>-coords.json`
-(relative references). **Local values are never written back to references.**
+Resolution order: `state/coords.local.json` (measured here; **every entry must carry `screen:{w,h}`**) →
+`references/<m>-coords.json` (relative references). **Local values are never written back to references.**
+
+⚠️ `resolve` output is a **search prior** (for `locate --region`), **not a click coordinate** (R4).
+
+### `locate.mjs` / `locate.ps1`
+
+```powershell
+node scripts/locate.mjs --window "Honkai Impact 3" `
+  --template "<module>\references\templates\<id>.png" --threshold 0.72 --json
+```
+
+Prints `{ok, found, score, scale, x, y, cx, cy, capture{method, window, clientOrigin}, ...}`;
+**`exit 2` = not found (fail-closed, do not click)**. Screen click = `capture.clientOrigin + (cx,cy)`.
+The `--image` form is for offline diagnosis only (no `clientOrigin`, so no screen-coordinate mapping).
+
+### `layout.mjs`
+
+```powershell
+node scripts/layout.mjs resolve --layout "<module>\references\hi-layout.json" --screen 1920x1080 --item tasks.open --json
+```
+
+Prints `{id, x, y, screen, scale, anchor, offset:{dx,dy}, scaleMode, clamped}`; `x,y` only helps pick a
+`--region` — it is not a click coordinate. Model and `check/fit/export`: `engine/layout.md`.
 
 ### `run-step.mjs`
 
 ```powershell
 node scripts/run-step.mjs --game hi --step 2       # print step 2's plan (no clicks)
 node scripts/run-step.mjs --game hi --all          # the whole routine
-node scripts/run-step.mjs --game hi --step 2 --ps  # ps-helper only: actually inject input
+node scripts/run-step.mjs --game hi --step 2 --ps  # rehearsal: clicks the priors, violates R4 — not for routine use
 ```
 
-Every action in the plan carries the resolved absolute coordinates and their source
-(`local` / `relative`).
+Every action carries a **target id** plus a prior coordinate (`local` / `relative`). A prior may only seed a
+`--region`; **never click it** (R4). Real click coordinates come from `locate`.
 
 ### `peek.mjs`
 
@@ -109,8 +132,10 @@ powershell -File scripts/helper.ps1 -StateDir <module>\state     # needs RunAs
 ## Adding a new game
 
 See “Adding a new game” in the root README: at minimum you need `references/<m>-daily.json`,
-`<m>-coords.json`, one row in the `GAMES` table of `probe.mjs`, and one row in this folder's
-`SKILL.md` routing table.
+`<m>-coords.json`, `<m>-layout.json`, one row in the `GAMES` table of `probe.mjs`, and one row in this
+folder's `SKILL.md` routing table. For scripted clicks also add `references/templates/`: one png per
+clickable id, plus `<id>.anchor.png` and a 1080p-calibrated offset for same-shape row buttons (R9).
+**Without templates, fall back to computer-use by hand — never to clicking priors.**
 
 ## License
 

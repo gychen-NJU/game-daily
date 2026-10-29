@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://local/game-daily/layout.schema.json",
+  "title": "game-daily layout（锚点 + 参考偏移）",
+  "description": "取代「某台机器某分辨率下校准出来的绝对坐标」。每个元素被描述成「贴哪条边/哪个角」+「距该锚点的偏移（单位：reference 逻辑像素）」，因此在任意 W×H 下都能解析出一个可用的初始位置（仅供视觉定位限定搜索区域，不是点击坐标）。尺度律见 engine/layout.md §3.2 与 §11：面板/列表/贴边 UI 按**宽度**缩放（k = W/1920，1600p→1080p = 0.75），弹窗不遵守单一比例律（保留 height 模式，只给搜索窗）。",
+  "type": "object",
+  "required": ["reference", "items"],
+  "properties": {
+    "game": {
+      "type": "string",
+      "description": "模块代码：hi / sr / zzz / gi",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "布局模型版本；模型语义变更才升"
+    },
+    "reference": {
+      "type": "object",
+      "description": "逻辑参考视口；offset 的单位就是它的像素。必须是 1920×1080（脚本内 REFERENCE 常量）",
+      "required": ["w", "h"],
+      "properties": {
+        "w": { "type": "integer", "const": 1920 },
+        "h": { "type": "integer", "const": 1080 }
+      },
+      "additionalProperties": false
+    },
+    "base": {
+      "type": "object",
+      "description": "这份布局被拟合出来的真实视口（崩3 = 2560×1600）。kBase = base 按 scaleMode 换算回 reference 的缩放；offset = (derived - anchorBase) / kBase。省略时视为 reference 本人（即 offset 以绝对参考像素记）。",
+      "required": ["w", "h"],
+      "properties": {
+        "w": { "type": "integer", "minimum": 320 },
+        "h": { "type": "integer", "minimum": 240 }
+      },
+      "additionalProperties": false
+    },
+    "note": { "type": "string", "description": "模型口径 / 使用红线" },
+    "generatedAt": { "type": "string", "description": "offset 拟合时间（ISO 8601）；仅溯源用，不参与解析" },
+    "sources": {
+      "type": "object",
+      "description": "offset 的出处（哪个坐标表、哪次校准）",
+      "additionalProperties": true
+    },
+    "calibration": {
+      "type": "object",
+      "description": "最近一次跨分辨率实测记录（at / screen / method / law / measured[]）。纯溯源用，不参与解析；改 derived 的依据应能在这里查到",
+      "additionalProperties": true
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "anchor", "offset", "scaleMode", "desc"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "description": "稳定 id，与 <game>-coords.json / daily 流程引用同一个命名空间"
+          },
+          "anchor": {
+            "enum": ["tl", "tc", "tr", "ml", "mc", "mr", "bl", "bc", "br"],
+            "description": "第一个字母是纵向(t=上 m=中 b=下)，第二个是横向(l=左 c=中 r=右)。**哪个轴是行为开关取决于 scaleMode**：height 模式下纵向 anchor 等价、横向决定跨宽高比行为；width 模式下三个横向 anchor 的 x 完全相同、纵向才是开关（16:10→16:9 顶锚与底锚差 120px）。详见 engine/layout.md §3.4"
+          },
+          "scaleMode": {
+            "enum": ["height", "width", "fixed"],
+            "description": "k 的取法：width=W/1920（**面板/列表/贴边 UI，本仓库主力，26/34**）、height=H/1080（弹窗类，不遵守宽度律，8/34）、fixed=1（像素级固定）。同一个 k 同时作用于 x/y。数据里必须显式写；漏写时脚本按 height 兜底并告警"
+          },
+          "offset": {
+            "type": "object",
+            "description": "距锚点的偏移，单位 = reference 逻辑像素；右/下锚定时为负。**不要手改**，由 fit 从 derived 反算",
+            "required": ["dx", "dy"],
+            "properties": {
+              "dx": { "type": "number" },
+              "dy": { "type": "number" }
+            },
+            "additionalProperties": false
+          },
+          "derived": {
+            "type": "object",
+            "description": "该条目在 base 视口下的来源绝对坐标（校准/出厂/实测元素中心）。用于 fit 反算与 check 的基准反解校验；可选但强烈建议保留",
+            "required": ["x", "y"],
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "source": {
+                "type": "string",
+                "description": "local = 本机点击校准值；reference = 出厂绝对坐标；measured1600 = 1600p 截图上量出的元素中心；其它自定"
+              }
+            },
+            "additionalProperties": false
+          },
+          "confidence": {
+            "enum": ["high", "medium", "low"],
+            "description": "这条先验的可信度：high = 两档分辨率实测吻合（残差 ≤2px）；medium = 单档实测/按尺度律推得但未逐点验；low = 未实点 / 结构会变 / 弹窗不遵守比例律 → 只能当搜索窗，且优先复核"
+          },
+          "desc": { "type": "string", "description": "这是哪个界面元素" },
+          "note": { "type": "string", "description": "易错点 / 不确定度 / 该 anchor 的理由" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

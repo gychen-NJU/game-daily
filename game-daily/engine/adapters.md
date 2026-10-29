@@ -194,3 +194,122 @@ click x y
 - 只对目标游戏窗口发输入；每批点击前确认前台标题。
 
 **为什么写进 skill**：用户 2026-10-23 明确要求 ——「星铁和崩坏三如果不能正常按脚本进行，请使用 harness 的电脑控制功能（computer-use）来帮我完成每日流程」。即：**脚本失效不等于当天放弃**，能用 computer-use 手动推的，就要推完并在报告里说明。
+
+---
+
+## 9. 定位优先：先找后点，落到每个适配器
+
+> 规则全文（R1–R9）在 `../SKILL.md` §2.2；本节只回答"我知道该点了，可是那个点在哪儿、谁去点"。
+> 一句话：**位置由 `scripts/locate.mjs` 给，坐标表只用来限定搜索区域，任何适配器都不许按坐标表直接点。**
+
+### 9.1 为什么不再按坐标表点
+
+旧链路是 `rx/ry × 屏幕尺寸 → 绝对坐标 → click`。它成立需要两个前提**同时**为真：
+
+1. 当前分辨率 = 基准分辨率（模板库存的那台机器）；
+2. 游戏 UI 在横竖两轴**同比缩放**。
+
+米哈游系 UI 大多是**贴边锚定**（按钮跟边角走、底部导航贴下沿），宽高比一变相对位置就变：
+16:10 量的 `(1630,1479)` 放到 16:9 上，页面整体会缩/移，按钮不再落在那儿。窗口化还会再小一圈
+（标题栏/边框/黑边），DPI 缩放又叠一层。更典型的例子是崩坏3 的两种结算弹窗——`dialog.ok` 与
+`popup.ok2` 高度差约 23 px，靠"记住 y"必然有一天点到空白。
+
+**视觉定位对这类偏移不敏感**：模板只要在客户区里出现、`score` 够，`cx,cy` 就是当前分辨率下的真位置。
+所以坐标表降级为"搜索先验"（给 `--region` 缩小范围、失败时排查），不再是点击依据（R4）。
+
+### 9.2 统一流水线（与 §2–§4 的适配器无关）
+
+```
+① shot      实时截图（R1）                    ← 每批点击前重新抓，禁止复用旧图
+② 认屏      对照 <m>-screens.md 的 expect（R2）← 文案不全 = 不在这个界面，别点
+③ locate    跑 scripts/locate.mjs（R3）       ← found=false 或 score<阈值 = 不点
+④ click     屏幕坐标 = capture.clientOrigin + (cx,cy)（R8）→ 用当前适配器去点
+⑤ 复检      再截图 + 按 verify 判定（R6）     ← 记 score/scale/cx,cy + before/after
+```
+
+`locate` 的 `x,y` 是命中框左上、`cx,cy` 是中心；**点 `cx,cy`**。两者都相对**客户区**左上角。
+把 `cx,cy` 变成点击用的屏幕坐标只差一步加法：`screenX = clientOrigin.x + cx`、`screenY = clientOrigin.y + cy`。
+
+```powershell
+node ..\game-daily\scripts\locate.mjs --window "<游戏窗口标题>" `
+  --template "references\templates\<id>.png" `
+  --threshold 0.72 `
+  [--region x,y,w,h] `
+  --json
+```
+
+输出：`{ok, found, score, scale, x, y, cx, cy, region, template, image, capture{method, window, clientOrigin}}`；
+退出码 `0` 命中 / `2` 未找到（fail-closed）/ `1` 参数或文件错误。**由 `scripts/locate.mjs` 提供**
+（底层定位引擎 `scripts/locate.ps1`）。
+
+### 9.3 各适配器怎么落地
+
+| 适配器 | 截图/认屏 | 定位 | 点击 | 注意 |
+| --- | --- | --- | --- | --- |
+| **A. native** | 自带截图工具 | 仍需 `locate`（R3 不分适配器） | 原生 click，坐标填 `clientOrigin + cx,cy` | 若原生工具吃**逻辑坐标**，先把物理坐标换算回逻辑（见 §2、§6），别把两套坐标混用 |
+| **B. wincu** | `windows_computer_use_screenshot(windowTitle=…)` 只用于**认屏** | 用 `locate` 抓客户区、算分数（比人眼看图更可靠） | `windows_computer_use_click` 传 `clientOrigin + cx,cy`，`dispatch:"auto"` | `imageScale` 只用于"把预览图上的像素换回屏幕像素"（看图和量距），**不是**点击坐标来源；管理员窗口点击会被 UIPI 拦（§5）→ 换 ps-helper 或 keyboard |
+| **C. ps-helper** | `shot.ps1` | 用 `locate` | 把 `clientOrigin + cx,cy` 写成 `cmd.txt` 里的 `click x y`，**仍走 §4 原子序列**（`key 18` → `activate` → sleep → `move` → `click`） | 唯一能点管理员窗口；`scripts/run-step.mjs --ps` 会按先验坐标直接点 → **违反 R4，日常只用它演练/探查**，不发真实点击 |
+| **computer-use 手推（§8）** | `screenshot` + `read_image` | 优先 `locate`；定位不可用时允许"读图给坐标"，但**必须**同时留实时截图、写明依据、并在报告标注哪几步是手推 | `click` / `keypress` | 见 §9.4 的窄例外；手推也不能"凭记忆点像素" |
+
+三个要点：
+
+- **认屏和定位是两件事**，都不能省：截图看着对（R2）不等于控件找到了（R3）；模板命中了（R3）
+  也不代表在预期界面（可能串到别的页的相似按钮）——所以顺序永远是 先认屏、再定位。
+- **`--region` 从哪来**：`scripts/layout.mjs resolve`（锚点模型）或 `coords.mjs resolve`（先验）；
+  同形页由 `references/templates/regions.json` 的 `pad` 覆盖默认 ±320（`run-step.mjs` 的 `layoutRegion()` 读）。
+  `--region` 是**消歧手段**（收窄窗口、抬高 uniqueness），不是"降级成盲点"：窗内找不到照样 exit 2。
+  拿不准就不带，全客户区搜索。
+- **窗口客户区是唯一坐标系（R8）**：全屏 2560×1600、窗口化、1920×1080、2160×1440、3440×1440
+  都成立；不要把整屏尺寸当客户区尺寸，也不要把 `capture.clientOrigin` 漏加。
+
+### 9.4 唯一允许"没有 locate 分数"的情况（窄例外，必须留证）
+
+只有下面两种情形可以改用"看图取坐标"，且必须**同时**满足列出的全部附加条件，否则停手：
+
+1. `locate` 对该窗口不可用（抓图失败 / 报错 exit 1），或该 id 在**所有外观变体**（`templates/index.json`）里都缺失；
+2. 附加条件：① 点是**本流程明确写出的目标**，不是"试试看"；② 点前点后各一张实时截图并存
+   `state/shots/`；③ 坐标来源写进 `state/runs/`（"读图目测，非模板命中"）；④ 报告里注明哪几步；
+   ⑤ 同一目标只点一次，点完没变化就停（R7），不重试点。
+
+**反例（不允许）**：模板没命中 → "那我按坐标表点一下"。这条正是本协议要消灭的行为。
+
+### 9.5 失败与停手（与 §7 一起看）
+
+| 现象 | 判定 | 处理 |
+| --- | --- | --- |
+| `locate` exit 2 / `found=false` | 未找到 | 先验界面正确（R2）；收紧 `--region` 重试**一次**；仍失败 → 停手（`onMismatch: stop` 优先） |
+| `found=true` 但 `score < 0.72` | 低置信 | **不点**（R3/R7）；可收紧区域重试一次；仍低 → 停手并报 `score` |
+| exit 1 | 参数/模板路径错误 | 修命令；不要当"没找到"处理 |
+| 命中框落在并排的相似按钮上 | 串模板 | 用 `--region` 限定到正确区域；仍串 → 报模板问题（`calibration.md` §6） |
+| 单模板在另一种弹窗外观上分数偏低 | 外观变体没登记 | 查 `templates/index.json`，把另一种 png 挂成别名（实测 0.579 → 1.0），别急着重截模板 |
+| 同形按钮命中错行 / `ambiguous=true`（同页像素级同形） | 缺消歧手段 | 先看是否"任意一行都行"：是 → `regions.json` 紧搜索窗（`pad [半宽x,半宽y]`，单位客户区像素）；要指定某行 → R9 锚点**全屏搜** + `anchors.json` `offset×scale`；缺条目 → 停手补表 |
+| 紧搜索窗后仍 `ambiguous` | 窗还没收到只含一行 | 减小 `pad`（如 y 收到 ±70 只含首行，实测 1.0/0.0028 → 0.9995/0.6442 exit 0）；仍不行 → 停手补 `pad` 或改锚点 |
+| 客户区尺寸与 `coords.local.json` 的 `screen` 不符 | R5 未校准 | 先验弃用（不影响定位，只是搜索范围变大） |
+| 窗口不可见 / 被遮挡 / 前台被抢 | R7 | 先置前并**重新抓图重定位**，不得复用抢前台前的命中框 |
+| 模板缺失（含 `index.json` 未登记、`anchors.json` 无条目、同形页 `regions.json` 无 `pad`） | 该步不可执行 | 停手报告，请模块作者补 png / 别名 / 锚点条目 / `pad`；不许退回坐标点击 |
+
+### 9.6 证据（R6）
+
+| 路径 | 内容 |
+| --- | --- |
+| `state/shots/<date>/<step>-<n>-before.png` | 点击前实时截图 |
+| `state/shots/<date>/<step>-<n>-after.png` | 点击后实时截图 |
+| `state/runs/<date>.json` | `{step, n, id, template, found, score, scale, cx, cy, screenClick:{x,y}, verify, ts}` 追加一条 |
+
+没有这三样，无法判断"是没找到、点空了、还是点了但界面没变"——而这三种的处理方式完全不同。
+
+### 9.7 三个脚本的分工（都按契约引用，实现见各自文件）
+
+| 脚本 | 用途 | 命令要点 | 输出 |
+| --- | --- | --- | --- |
+| `scripts/run-step.mjs` | **流程级演练/执行（推荐入口）** | `--locate`（逐步截图→定位→过阈值才点）/ `--probe`（只截图+定位、绝不点击）/ `--anchor-only`（只走锚点排障）/ `--threshold 0.72`；同形页窗由 `templates/regions.json` 的 `pad` 收窄 | exit：`--locate` **0 全过 / 3 有步失败（已停，未点）**；`--probe` 0 全过 / 2 任一步未命中 |
+| `scripts/locate.mjs`（+ `locate.ps1`） | **给点击位置**（R3 的唯一来源） | `--window <标题> --template <png> [--region x,y,w,h] --threshold 0.72 --json`；同一 id 多外观先读 `templates/index.json`；`--image` 形式只作离线排查（无 `clientOrigin`，不能换算屏幕坐标） | `found/score/scale/x/y/cx/cy/capture`；exit 0/2/1 |
+| `scripts/layout.mjs` | 给**搜索区域**（锚点先验） | `resolve --layout <json> --screen <客户区WxH> --item <id>\|--all --json` | `id/x/y/screen/scale/anchor/offset/scaleMode/clamped` |
+| `scripts/coords.mjs` | 旧接口：先验/排查 | `resolve <id> --game <g> --screen <客户区WxH> --json` | `{id, x, y, source(local\|relative\|absolute(legacy)), note}` |
+
+> `coords.mjs` 的 `(x,y)` **永远不是点击坐标**；它只帮你理解"大概在哪"、或定位失败时对照排查。
+
+**定位优先级（手工执行与 `run-step --locate/--probe` 一致）**：① 直接模板（`index.json` 里该 id 的全部变体，
+先验只用来缩 `--region`；同形页的窗由 `regions.json` 的 `pad` 收窄）→ ② 锚点模板**全屏**搜索 +
+`anchors.json` 的 `(dx,dy) × scale` → ③ 都失败 → 停手，**不退回坐标点击**。锚点必须全屏搜：它离目标约 402 px，
+拿目标先验做 `--region` 会把锚点切掉。

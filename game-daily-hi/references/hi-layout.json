@@ -1,0 +1,801 @@
+{
+  "game": "hi",
+  "version": 1,
+  "reference": {
+    "w": 1920,
+    "h": 1080
+  },
+  "base": {
+    "w": 2560,
+    "h": 1600
+  },
+  "note": "崩坏3 日常界面锚点布局。坐标只用于给视觉定位引擎限定搜索区域，**禁止直接按它点击**——必须先在区域内找到模板/文字（references/templates/<id>.png，阈值 0.72），分数不够就停手。reference=1920×1080（offset 的单位）；base=2560×1600（offset 由这个视口的绝对坐标反算）。**尺度律（2026-10-30 1080p 实机校准）**：面板/列表/贴边 UI 按**宽度**缩放（k = W/2560，1600p→1080p = 0.75，不是高度比 0.675），故主体 scaleMode=width；顶层元素顶边锚定、贴底元素（dock/历练值条）底边锚定——在 width 模式下**纵向 anchor 才是跨宽高比的行为开关**，选错边固定偏 120px（16:10→16:9）。弹窗不遵守任何单一比例律（实测 797 落在 786/814 之间），保留 height 模式且仅作搜索窗，必须靠模板定位。改坐标的正确姿势：更新 derived + 重跑 `node ../game-daily/scripts/layout.mjs fit --layout hi-layout.json --write`，不要手改 offset。",
+  "generatedAt": "2026-10-29T21:09:39.567Z",
+  "sources": {
+    "reference": "references/hi-coords.json（出厂坐标，base 2560×1600）",
+    "local": "state/coords.local.json（本机校准，calibratedAt 2026-10-23T18:43:51.294Z）",
+    "merge": "优先级：measured1600（量到几何中心）> local（本机点击校准，可能刻意点偏）> reference（出厂）；每项 derived.source 标注实际来源",
+    "screens": "references/screens/{dorm,tasks}.png 用于复核左右贴边与按钮组归属",
+    "measured1600": "1600p 参考图 references/screens/tasks.png（1000×625 ×2.56 → 2560×1600）上量出的元素几何中心；2026-10-30 Lead 与 1080p 同屏比对时复测",
+    "calibration1080": "1080p 实机客户区截图（%TEMP%\\hi1080\\shots\\sc-tasks2.png，1920×1080）同一元素量点；结论见本文件 calibration 字段与 engine/layout.md §11",
+    "residuals": "state/drill/layout-residuals-1080.json（逐 id 的 1080p 预测 vs 实测残差，drill 收官报告用）"
+  },
+  "items": [
+    {
+      "id": "launcher.hi_icon",
+      "anchor": "ml",
+      "scaleMode": "width",
+      "derived": {
+        "x": 369,
+        "y": 1029,
+        "source": "reference"
+      },
+      "offset": {
+        "dx": 276.75,
+        "dy": 171.75
+      },
+      "desc": "启动器左侧「崩坏3」图标（位置不固定）",
+      "note": "锚点 ml：启动器左侧图标列、纵向居中带。★启动器是自绘窗口，缩放模型未知，只作粗定位；图标会随已安装游戏数上下挪位，必须按图标认（左上「10 周年」角标的银色图标）。",
+      "confidence": "low"
+    },
+    {
+      "id": "launcher.start_game",
+      "anchor": "tl",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1884,
+        "y": 1166,
+        "source": "reference"
+      },
+      "offset": {
+        "dx": 1413,
+        "dy": 874.5
+      },
+      "desc": "启动器右下「开始游戏」",
+      "note": "锚点 tl：启动器窗口整体近似等比缩放，按比例定位比按右边缘更稳。黄色主按钮。若启动器实际是「居中定尺窗口」，本值在 1080p 会偏左约 90px，属可接受的搜索先验。",
+      "confidence": "low"
+    },
+    {
+      "id": "game.click_anywhere",
+      "anchor": "mc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1280,
+        "y": 760,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 0,
+        "dy": -27
+      },
+      "desc": "标题界面「点击任意处」",
+      "note": "锚点 mc：整屏中心。本机实测 1280,760（出厂 1280,800）。点一下进入主界面，任意位置都行。",
+      "confidence": "high"
+    },
+    {
+      "id": "tasks.open",
+      "anchor": "tl",
+      "scaleMode": "width",
+      "derived": {
+        "x": 150,
+        "y": 258,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 112.5,
+        "dy": 193.5
+      },
+      "desc": "主界面左上「任务」图标",
+      "note": "锚点 tl：主界面左侧竖排工具栏贴左。本机实测 150,258；出厂 148,307 的 y 偏了 49px，实测不命中，已采用本机值。图标带红色感叹号表示有可领。",
+      "confidence": "medium"
+    },
+    {
+      "id": "tasks.onekey_claim",
+      "anchor": "tr",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2350,
+        "y": 238,
+        "source": "measured1600"
+      },
+      "offset": {
+        "dx": -157.5,
+        "dy": 178.5
+      },
+      "desc": "作战任务页右上「一键领取」",
+      "note": "【1080p 校准】实测中心 1600p (2350,238) / 1080p (1762,180)，尺寸 323×87→242×65；宽比律残差 (−0.5,+1.5)px。原 2337,246 为点击落点，已换成实测中心。 锚点 tr：任务页右侧按钮列贴右上角（screens/tasks.png 复核：≈0.90W,0.14H）。灰色=没有可领；领完点 dialog.ok 收弹窗。",
+      "confidence": "high"
+    },
+    {
+      "id": "dialog.ok",
+      "anchor": "mc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1280,
+        "y": 1165,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 246.375
+      },
+      "desc": "奖励弹窗「确定」",
+      "note": "【1080p 校准】1080p 实测 (959,797)，不是 960,786（高比）也不是 960,814（宽比）——**弹窗不遵守面板尺度律**，这里保留 height 模式（786，误差 −11px）只为给搜索窗；必须靠 dialog 模板定位。 锚点 mc：弹窗居中。领取奖励/获取报酬类弹窗的确定按钮都在这个高度。与 popup.ok2 差 23px，别混用。",
+      "confidence": "low"
+    },
+    {
+      "id": "popup.ok2",
+      "anchor": "mc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1280,
+        "y": 1142,
+        "source": "reference"
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 230.85
+      },
+      "desc": "确认类弹窗按钮（放入舰团奖励池 / 减负等）",
+      "note": "锚点 mc：弹窗居中。比 dialog.ok 高 23px：扫荡/减负/放入奖励池这类确认框用它。",
+      "confidence": "low"
+    },
+    {
+      "id": "tasks.coin_go",
+      "anchor": "tc",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1313,
+        "y": 799,
+        "source": "measured1600"
+      },
+      "offset": {
+        "dx": 24.75,
+        "dy": 599.25
+      },
+      "desc": "「金币采集」这一行的「前往」",
+      "note": "【1080p 校准】1600p 参考图那天在左列 (1313,799)；1080p 实测那天换到右列 (1763,600)，y 仍合 0.75 律（799×0.75=599.25）。**列位置由当日列表顺序决定**，本项只作左列先验，实际必须\"行标题模板 → 同行按钮\"（列 x：1600p 左 1313 / 右 2353，1080p 左 984 / 右 1763）。 锚点 tc：任务页左列行按钮，靠近页面中线（screens/tasks.png：左列前往≈0.53W）。本机实测 1352,786；点进去实际是回收委托页，按流程接着做。",
+      "confidence": "low"
+    },
+    {
+      "id": "dorm.capsule_stamina",
+      "anchor": "tl",
+      "scaleMode": "width",
+      "derived": {
+        "x": 640,
+        "y": 538,
+        "source": "reference"
+      },
+      "offset": {
+        "dx": 480,
+        "dy": 403.5
+      },
+      "desc": "家园「金币标志」机器上的半透明管体",
+      "note": "【1080p 校准】宽比律 1080p 预测 (480, 403.5)（原高比预测 432,363 已作废）。该点是 3D 家园场景投影，不遵守 2D 贴边律，且语义待核（点它弹的是体力补充）→ confidence low，待实机复核。 锚点 tl：3D 家园场景内的投影位置，跨宽高比最不可靠，只作粗定位。★实测点它弹出的是「体力补充」而不是金币采集，语义待 Lead 在实机确认。",
+      "confidence": "low"
+    },
+    {
+      "id": "nav.home",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2258,
+        "y": 1518,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -226.5,
+        "dy": -61.5
+      },
+      "desc": "主界面右下「家园」",
+      "note": "【2026-10-30】主界面 dock 组（舰团 1300,1010 / 家园 1605,1010）实测**不服从宽比律**，但那两点**不在 coord 表内**、与本项无关；本项（主界面底栏最右一格，商店/家园）**仍未直接量过** → confidence low，先验只当搜索窗。锚点 br：贴右下角（dorm.png：商店/家园在 0.87–0.88W，右缘留白约 7%）。derived 2258,1518 = 本机点击校准（出厂 2248,1505）。",
+      "confidence": "low"
+    },
+    {
+      "id": "nav.main_menu",
+      "anchor": "tl",
+      "scaleMode": "width",
+      "derived": {
+        "x": 466,
+        "y": 72,
+        "source": "measured1600"
+      },
+      "offset": {
+        "dx": 349.5,
+        "dy": 54
+      },
+      "desc": "左上「主菜单」",
+      "note": "【1080p 校准 2026-10-30】实测元素中心 1600p (466,72) / 1080p (349,53)，尺寸 346×100→259×76；0.75 宽比律残差 (−0.5,−1.0)px。原 481,95 是本机点击落点而非元素中心，已换成实测中心。 锚点 tl：贴左上角（tasks.png 复核：≈0.24W,0.04H 的黄色按钮）。打工地图里没有它，那里改用 nav.back。",
+      "confidence": "high"
+    },
+    {
+      "id": "nav.back",
+      "anchor": "tl",
+      "scaleMode": "width",
+      "derived": {
+        "x": 123,
+        "y": 61,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 92.25,
+        "dy": 45.75
+      },
+      "desc": "左上「返回」",
+      "note": "锚点 tl：贴左上角（dorm.png：≈0.05W,0.03H）。打工地图→返回→家园房间；再按一次退回进入前的页面。",
+      "confidence": "medium"
+    },
+    {
+      "id": "nav.expedition",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1630,
+        "y": 1479,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -697.5,
+        "dy": -90.75
+      },
+      "desc": "家园底部「远征」",
+      "note": "【语义确认 2026-10-30】本项是**进入「家园」后**底栏的「远征」入口，**不是**主界面底部 dock（主界面上实测的舰团 1300,1010 / 家园 1605,1010 **不在 coord 表内**，勿混）。1080p 实测 1225,995（locate score 1.0000，uniqueness 0.4517），宽比先验 1223,989 → 残差 +2,+6，与面板类同一量级 → confidence medium。模板 references\\\\templates\\\\nav.expedition.png 已裁。锚点 br：家园底栏右侧按钮组（dorm.png：远征≈0.63W、打工≈0.75W、商店≈0.87W，整组贴右下）。derived 1630,1479 = 本机点击校准（出厂 1595,1480）。",
+      "confidence": "medium"
+    },
+    {
+      "id": "exp.claim_one",
+      "anchor": "tr",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1924,
+        "y": 485,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -477,
+        "dy": 363.75
+      },
+      "desc": "远征列表第一条的「完成远征」",
+      "note": "锚点 tr：列表行右侧按钮（列表近似全宽）。本机实测 1924,485（出厂 1871,486）。先随手完成一条拿奖励，再一键远征。",
+      "confidence": "medium"
+    },
+    {
+      "id": "exp.onekey",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2377,
+        "y": 1492,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -137.25,
+        "dy": -81
+      },
+      "desc": "远征页右下「一键远征」",
+      "note": "锚点 br：贴右下角。本机实测 2377,1492（出厂 2317,1493，x 差 60px）。确认后 6 条变「远征中 · 49 分 50 秒」。",
+      "confidence": "medium"
+    },
+    {
+      "id": "exp.dispatch",
+      "anchor": "bc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1630,
+        "y": 1317,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 236.25,
+        "dy": -191.025
+      },
+      "desc": "一键远征确认框「远征派遣」",
+      "note": "锚点 bc：确认弹窗居中偏下。本机实测 1630,1317（出厂 1638,1306）。",
+      "confidence": "low"
+    },
+    {
+      "id": "nav.work",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1972,
+        "y": 1479,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -441,
+        "dy": -90.75
+      },
+      "desc": "家园底部「打工」",
+      "note": "【语义确认 2026-10-30】本项是**进入「家园」后**底栏的「打工」入口，**不是**主界面底部 dock。1080p 实测 1470,995（locate score 1.0000，uniqueness 0.4927），宽比先验 1479,989 → 残差 −9,+6→ confidence medium。模板 references\\\\templates\\\\nav.work.png 已裁。锚点 br：与 nav.expedition 同组，贴右下。derived 1972,1479 = 本机点击校准（出厂 1946,1505）。",
+      "confidence": "medium"
+    },
+    {
+      "id": "work.claim_rewards",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2341,
+        "y": 1492,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -164.25,
+        "dy": -81
+      },
+      "desc": "打工地图右下「领取奖励」",
+      "note": "锚点 br：贴右下角。★有可领时先点它再派工；灰的=还没有完成的打工。本机实测 2341,1492（出厂 2350,1523）。",
+      "confidence": "medium"
+    },
+    {
+      "id": "work.onekey",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1980,
+        "y": 1492,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -435,
+        "dy": -81
+      },
+      "desc": "打工地图右下「一键打工」",
+      "note": "锚点 br：与「领取奖励」同一右下按钮组。本机实测 1980,1492（出厂 2040,1523，x 差 60px）。",
+      "confidence": "medium"
+    },
+    {
+      "id": "work.confirm",
+      "anchor": "bc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1630,
+        "y": 1317,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 236.25,
+        "dy": -191.025
+      },
+      "desc": "「打工确认」弹窗的「一键打工」",
+      "note": "锚点 bc：确认弹窗居中偏下。本机实测 1630,1317（出厂 1638,1306）。弹窗会列点位数、耗时（14 小时级）与饭团消耗。",
+      "confidence": "low"
+    },
+    {
+      "id": "tasks.clan_go",
+      "anchor": "tc",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1313,
+        "y": 1091,
+        "source": "measured1600"
+      },
+      "offset": {
+        "dx": 24.75,
+        "dy": 818.25
+      },
+      "desc": "「舰团委托」这一行的「前往」",
+      "note": "【1080p 校准】1600p 参考图那天在左列 (1313,1091)；1080p 实测那天换到右列 (1763,819)，y 合 0.75 律（1091×0.75=818.25）。**从未实点** + 列随当日顺序变 → 只作\"行内右下\"先验；实际用行标题模板 + 同行按钮列 x（1080p：左 984 / 右 1763）。 锚点 tc：任务页左列行按钮（左列×0.53W）。⚠️未实点：当日该行 2/2 已完成、没有「前往」可点；本机校准 1352,1088 是按 tasks.png 推算（同金币采集的 x、同材料活动的 y）。出厂 2337,1073 落在右列「材料活动·前往」上，明显错位，已弃用。",
+      "confidence": "low"
+    },
+    {
+      "id": "comm.new",
+      "anchor": "bl",
+      "scaleMode": "width",
+      "derived": {
+        "x": 322,
+        "y": 1393,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 241.5,
+        "dy": -155.25
+      },
+      "desc": "委托页左下「申请新委托」",
+      "note": "锚点 bl：委托页左下角贴左下。显示 1/10 表示还能申请。本机实测 322,1393。",
+      "confidence": "medium"
+    },
+    {
+      "id": "comm.onekey_apply",
+      "anchor": "tr",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2304,
+        "y": 256,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -192,
+        "dy": 192
+      },
+      "desc": "委托申请页右上「一键申请」",
+      "note": "锚点 tr：贴右上角。申请满 10/10 后再提交。本机实测 2304,256。",
+      "confidence": "medium"
+    },
+    {
+      "id": "comm.submit",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1892,
+        "y": 1439,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -501,
+        "dy": -120.75
+      },
+      "desc": "委托页右下「提交」",
+      "note": "锚点 br：贴右下角。本机实测 1892,1439（出厂 1856,1446）。",
+      "confidence": "medium"
+    },
+    {
+      "id": "comm.submit_confirm",
+      "anchor": "bc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1630,
+        "y": 1205,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 236.25,
+        "dy": -266.625
+      },
+      "desc": "「提交回收物品」弹窗的「提交委托」",
+      "note": "锚点 bc：确认弹窗居中。本机实测 1630,1205（出厂 1628,1198）。文案提示「一经回收概不退还」。",
+      "confidence": "low"
+    },
+    {
+      "id": "comm.put_pool",
+      "anchor": "mc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1280,
+        "y": 1142,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 230.85
+      },
+      "desc": "「获取委托报酬」弹窗的「放入舰团奖励池」",
+      "note": "锚点 mc：弹窗居中。与 popup.ok2 同高（1142）。",
+      "confidence": "low"
+    },
+    {
+      "id": "side.pool_tab",
+      "anchor": "tr",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2464,
+        "y": 416,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -72,
+        "dy": 312
+      },
+      "desc": "右侧竖排第二个页签「舰团奖池」",
+      "note": "锚点 tr：右侧竖排页签贴右。本机实测 2464,416（出厂 2406,456，差 69px）。★上面那个是「回收委托」，别点错。",
+      "confidence": "medium"
+    },
+    {
+      "id": "pool.claim",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1812,
+        "y": 1446,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -561,
+        "dy": -115.5
+      },
+      "desc": "舰团奖池右下「领取」",
+      "note": "锚点 br：贴右下角。常规发放 + 随机发放一起算。本机实测 1812,1446。",
+      "confidence": "medium"
+    },
+    {
+      "id": "tasks.material_go",
+      "anchor": "tr",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2353,
+        "y": 1091,
+        "source": "measured1600"
+      },
+      "offset": {
+        "dx": -155.25,
+        "dy": 818.25
+      },
+      "desc": "「材料活动」这一行的「前往」",
+      "note": "【1080p 校准】实测中心 1600p (2353,1091)（右列）；1080p 那天该行顺序变了，没量到 → 按宽比律预测 1080p (1764.75, 818.25)。列/行由当日列表决定，同 tasks.coin_go。 锚点 tr：任务页右列按钮贴右（tasks.png 复核：右列前往≈0.90W）。本机复核命中 2337,1085。",
+      "confidence": "low"
+    },
+    {
+      "id": "material.onekey_reduce",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2317,
+        "y": 1469,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -182.25,
+        "dy": -98.25
+      },
+      "desc": "材料活动页右下「一键减负」",
+      "note": "锚点 br：贴右下角。本机复核命中 2317,1469。注意任务页左下也有一个「一键减负」，不是同一个按钮。",
+      "confidence": "medium"
+    },
+    {
+      "id": "material.reduce_confirm",
+      "anchor": "mc",
+      "scaleMode": "height",
+      "derived": {
+        "x": 1280,
+        "y": 1137,
+        "source": "local"
+      },
+      "offset": {
+        "dx": 0,
+        "dy": 227.475
+      },
+      "desc": "「日常减负」弹窗的「减负」",
+      "note": "锚点 mc：弹窗居中。本机实测 1280,1137；约消耗 67 体力。",
+      "confidence": "low"
+    },
+    {
+      "id": "tasks.daily600",
+      "anchor": "br",
+      "scaleMode": "width",
+      "derived": {
+        "x": 2363,
+        "y": 1465,
+        "source": "local"
+      },
+      "offset": {
+        "dx": -147.75,
+        "dy": -101.25
+      },
+      "desc": "底部「每日历练值」进度条最右端 600 图标",
+      "note": "锚点 br：进度条贴底、600 在最右端。本机复核命中 2363,1465。灰蓝图标，点它领每日活跃奖励（水晶 5/5/5/10/15）。",
+      "confidence": "medium"
+    },
+    {
+      "id": "signin.claim",
+      "anchor": "bc",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1477,
+        "y": 1508,
+        "source": "reference"
+      },
+      "offset": {
+        "dx": 147.75,
+        "dy": -69
+      },
+      "desc": "「每日签到」面板底部「领取」",
+      "note": "锚点 bc：签到面板居中、按钮在面板底部。进游戏会自动弹；不弹就从左侧「福利」进。仅出厂值，未在本机校准。",
+      "confidence": "low"
+    },
+    {
+      "id": "monthcard.claim",
+      "anchor": "bc",
+      "scaleMode": "width",
+      "derived": {
+        "x": 1280,
+        "y": 1398,
+        "source": "reference"
+      },
+      "offset": {
+        "dx": 0,
+        "dy": -151.5
+      },
+      "desc": "「月卡福利」页底部「领取 ×60」",
+      "note": "锚点 bc：居中页面底部。左侧「福利」→「月卡福利」；按钮变「已领取」表示今天领过。仅出厂值，未在本机校准。",
+      "confidence": "low"
+    }
+  ],
+  "calibration": {
+    "at": "2026-10-30",
+    "screen": {
+      "w": 1920,
+      "h": 1080
+    },
+    "method": "Lead 1080p 实机截图（客户区 1920×1080）与 1600p 参考图 references/screens/tasks.png（1000×625 ×2.56 → 2560×1600）同一元素各量一次中心/尺寸",
+    "law": "k = W / 2560（1600p→1080p = 0.75 = 1920/2560，宽度比）；面板/列表/贴边 UI 全部成立；贴底元素底边锚定；弹窗不适用",
+    "measured": [
+      {
+        "label": "主菜单按钮",
+        "id": "nav.main_menu",
+        "p1600": [
+          466,
+          72
+        ],
+        "p1080": [
+          349,
+          53
+        ],
+        "size1600": [
+          346,
+          100
+        ],
+        "size1080": [
+          259,
+          76
+        ]
+      },
+      {
+        "label": "一键领取",
+        "id": "tasks.onekey_claim",
+        "p1600": [
+          2350,
+          238
+        ],
+        "p1080": [
+          1762,
+          180
+        ],
+        "size1600": [
+          323,
+          87
+        ],
+        "size1080": [
+          242,
+          65
+        ]
+      },
+      {
+        "label": "每日登录·领取",
+        "id": null,
+        "p1600": [
+          1311,
+          509
+        ],
+        "p1080": [
+          984,
+          381
+        ],
+        "size1600": [
+          276,
+          105
+        ],
+        "size1080": [
+          208,
+          79
+        ]
+      },
+      {
+        "label": "芽衣的加餐·领取",
+        "id": null,
+        "p1600": [
+          2350,
+          509
+        ],
+        "p1080": [
+          1763,
+          381
+        ],
+        "size1600": [
+          276,
+          105
+        ],
+        "size1080": [
+          208,
+          79
+        ]
+      },
+      {
+        "label": "金币采集·前往",
+        "id": "tasks.coin_go",
+        "p1600": [
+          1313,
+          799
+        ],
+        "p1080": [
+          1763,
+          600
+        ],
+        "size1600": [
+          276,
+          105
+        ],
+        "size1080": [
+          208,
+          79
+        ],
+        "note": "1080p 换到右列（当日列表顺序不同）"
+      },
+      {
+        "label": "舰团委托·前往",
+        "id": "tasks.clan_go",
+        "p1600": [
+          1313,
+          1091
+        ],
+        "p1080": [
+          1763,
+          819
+        ],
+        "size1600": [
+          276,
+          105
+        ],
+        "size1080": [
+          208,
+          79
+        ],
+        "note": "1080p 换到右列"
+      },
+      {
+        "label": "家园打工·前往",
+        "id": null,
+        "p1600": [
+          2353,
+          799
+        ],
+        "p1080": [
+          984,
+          819
+        ],
+        "size1600": [
+          276,
+          105
+        ],
+        "size1080": [
+          208,
+          79
+        ],
+        "note": "1080p 换到左列/下一行"
+      },
+      {
+        "label": "材料活动·前往",
+        "id": "tasks.material_go",
+        "p1600": [
+          2353,
+          1091
+        ],
+        "p1080": null,
+        "size1600": [
+          276,
+          105
+        ],
+        "size1080": null
+      },
+      {
+        "label": "弹窗·确定",
+        "id": "dialog.ok",
+        "p1600": [
+          1280,
+          1165
+        ],
+        "p1080": [
+          959,
+          797
+        ],
+        "size1600": null,
+        "size1080": null,
+        "note": "不符合单一比例律"
+      },
+      {
+        "label": "每日历练值条",
+        "id": null,
+        "p1600": [
+          null,
+          1492
+        ],
+        "p1080": [
+          null,
+          999
+        ],
+        "size1600": null,
+        "size1080": null,
+        "note": "距底 108 → 81（×0.75），证明底边锚定"
+      }
+    ]
+  }
+}

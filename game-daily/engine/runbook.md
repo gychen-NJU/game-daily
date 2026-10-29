@@ -5,12 +5,16 @@
 ## 1. 五拍循环
 
 ```
-① shot     截图（带 windowTitle / 或全屏）
-② 认屏     看图核对 expect（关键文案 / 关键控件在不在）
-③ 解析     用 coords.mjs resolve 把 coord id 换成当前机器的绝对坐标
-④ 执行     move → click（或 key），必要时先 fg 抢前台
-⑤ 复检     再截一张图，确认状态真的变了；把结果写进 state/runs/
+① shot     抓实时截图（locate --window 自带抓图；不复用上一轮/旧图）              ← R1
+② 认屏     核对 expect + <m>-screens.md 的必见文案（关键文案/版式在不在）         ← R2
+③ 定位     用模板找目标：score ≥ 0.72 才拿到 (cx,cy)                              ← R3
+           同形按钮先 locate 锚点模板，再按 offset × scale 算按钮中心               ← R9
+④ 执行     click 屏幕坐标 = capture.clientOrigin + (cx,cy)；必要时先 activate     ← R8
+⑤ 复检     再抓一张图确认状态真的变了；score/scale/坐标写进 state/runs/            ← R6
 ```
+
+**坐标表不再是这一环里的"解析目标"**：`*-coords.json` / `*-layout.json` / `coords.local.json`
+只用来给 `locate` 限定 `--region`（R4），**不能**拿来点击。规则全文见 `../SKILL.md` §2.2（R1–R9）。
 
 任何一拍失败 → 停在第 5 节的"停手条件"，不要继续往下点。
 
@@ -46,7 +50,7 @@
 
 | `do` | 参数 | 说明 |
 |---|---|---|
-| `click` | `coord`（id）或 `x,y` | 左键单击；坐标必须能解析，解析不了就报错 |
+| `click` | `coord`（目标 id） | 左键单击该 **目标 id** 对应的控件：先用 `references/templates/<id>.png` 定位（R3），命中才点；同形按钮按锚点+偏移（R9）。**不再接受 `x,y` 字面坐标**——坐标表只能给 `--region`（R4） |
 | `move` | 同上 | 悬停（触发 tooltip / 高亮） |
 | `key` | `vk` | 按一次键 |
 | `wait` | `ms` | 等待（动画/加载） |
@@ -55,16 +59,25 @@
 
 **禁止**在 DSL 里写"循环刷本/自动战斗判胜负"这类逻辑：胜负由 agent 看图判定，超时就停手。
 
+`coord` 里填的是**目标 id**（对应 `references/templates/<id>.png`），不是坐标；模板缺失 = 这一步不可执行
+（停手或按 §2.4 用 computer-use 手推），**不许**退回坐标表点击。
+
 ## 4. 记账
 
-每步执行后追加到 `state/runs/YYYY-MM-DD.json`：
+每步执行后追加到 `state/runs/YYYY-MM-DD.json`（同一天多条，**不要覆盖**已有数组）：
 
 ```json
-{ "step": 3, "ts": "...", "adapter": "wincu",
-  "resolved": { "guide.task_claim": {"x":540,"y":1182,"source":"local"} },
-  "shot": "state/shots/2026-10-23-step3.png",
+{ "step": 3, "ts": "…", "adapter": "wincu",
+  "target": "guide.task_claim",
+  "locate": { "found": true, "score": "…", "scale": "…", "cx": "…", "cy": "…",
+              "clientOrigin": { "x": "…", "y": "…" },
+              "screenClick": { "x": "…", "y": "…" } },
+  "shots": { "before": "state/shots/<date>/step3-1-before.png",
+             "after":  "state/shots/<date>/step3-1-after.png" },
   "verify": "pass", "note": "活跃度 0→100" }
 ```
+
+字段值填**实测**（示例里的 `…` 是占位，别照抄数字）。`found=false` 时的 `score` 是最有价值的排查数据。
 
 `peek.mjs` 可以把这些记录读成一张表（`node scripts/peek.mjs --game sr`）。
 
@@ -75,7 +88,9 @@
 3. 出现 UAC / 权限不足 / 输入被拦截；
 4. 出现付费按钮（"解锁无名客的勋礼"）、删除/重置类按钮、或任何要花真钱的确认框；
 5. 需要判断资源是否足够、是否要继续花体力而流程没写明；
-6. 用户随时说停。
+6. 用户随时说停；
+7. `locate` 找不到目标（`found=false` 或 `score < 0.72`）且重试一次仍失败、模板文件缺失、
+   或截图全黑/明显是旧帧（R3 / R7）。
 
 停下来时输出三件事：**卡在哪一步、屏幕现在什么样（截图路径）、建议用户怎么做**。
 

@@ -1,0 +1,10 @@
+{
+  "dialog.ok": ["dialog.ok.png", "popup.ok2.png"],
+  "popup.ok2": ["popup.ok2.png", "dialog.ok.png"],
+  "exp.dispatch": ["popup.ok2.png", "dialog.ok.png"],
+  "work.confirm": ["popup.ok2.png", "dialog.ok.png"],
+  "material.reduce_confirm": ["popup.ok2.png", "dialog.ok.png"],
+  "comm.submit_confirm": ["popup.ok2.png", "dialog.ok.png"],
+  "comm.put_pool": ["popup.ok2.png", "dialog.ok.png"],
+  "tasks.daily600": ["tasks.daily600.png", "tasks.daily600.claimed.png"]
+}
