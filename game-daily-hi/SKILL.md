@@ -134,6 +134,34 @@ node ..\game-daily\scripts\run-step.mjs --game hi --all           # 14 步全计
 
 五拍：**截图（R1）→ 认屏（R2）→ 定位（R3）→ 点击 → 复检（R6）**。任何一拍不对就停（见 §4）。
 
+### 1.1 保险操作：误入别的界面 → 回主界面 → 重跑被打断的步骤（R10）
+
+任何一步"点不下去 / 点完没变化 / 画面明显不对"（停在弹窗里、进了别的子页、该点「作战任务」却落在「作战商店」等），
+**禁止在原地猜坐标或反复连点**：先跑一次保险操作把界面归位，再从被打断那一步的**第 1 条动作**重跑。
+
+```powershell
+# 真机归位（会真的点按钮：先关弹窗→逐步返回→必要时点主菜单）
+node ..\game-daily\scripts\run-step.mjs --game hi --recover --ps
+# 只看它会点哪里（不动鼠标）
+node ..\game-daily\scripts\run-step.mjs --game hi --recover --dry-run
+# 拿旧截图离线校验判定逻辑（不点击）
+node ..\game-daily\scripts\run-step.mjs --game hi --recover --shot "state\shots\evidence\xxx.png"
+```
+
+判定与动作（全部可在 `references\hi-daily.json` 的 `recovery` 块里调，改数据不用改代码）：
+
+| 项 | 默认值 | 说明 |
+| --- | --- | --- |
+| 主界面判定 | 有「任务」图标（`tasks.open` ≥ **0.65**）**且** `nav.back` / `nav.main_menu` / `dialog.ok` 都 < **0.82** | 只有"该在主界面的东西在、不该在的东西都不在"才算归位 |
+| 回退顺序 | `dialog.ok` → `nav.back` → `nav.main_menu` | 先关弹窗（确定），再后退（返回），退不动就点主菜单，每退一次重新截图复检 |
+| 循环上限 | 8 次 | 超限即停手报错（R7） |
+| 归位之后 | 从被中断步骤的第 1 条动作重跑，每步最多自动重试一次 | `--locate` 执行期自动触发；`--no-recover` 关闭 |
+
+- **不要拿「家园」当主界面标记**：`nav.home` 在跨分辨率缩放下只有 0.79 且 `ambiguous=true`（底部 dock 形态随分辨率变化）。
+  「有任务图标 + 没有返回/主菜单/确定」这个合取在 1080p 与 1600p 都实测通过。
+- 离线验证覆盖面：主界面（判定"已在主界面"）、作战任务页（→ 点返回）、奖励弹窗（→ 先点确定）、
+  以及 1600p 截图缩到 1080p 的主界面/子页（判定同样正确）。
+
 ## 2. 14 步一览
 
 | # | 步骤 | 关键动作 | 目标 id（点击需模板） |
@@ -179,8 +207,16 @@ uniqueness 0.49）→ **可直点**；`exp.onekey` = 已验（score **1.0000**�
 **0.9995**、uniqueness **0.6442**、`ambiguous=false` → exit 0，点首行即可——任意一行功能等价）。
 **缺 `regions.json` 条目 → 退回默认 ±320 → 同形页必然 ambiguous（runnerUp 0.9972 / uniqueness 0.0028）
 → exit 2 → 不可执行**（分数高 ≠ 唯一，这不是调阈值能解决的）。
-其余 id 的模板仍缺（`tasks.open`、`nav.home`、`exp.dispatch`、`work.*`、`comm.*`、`material.*`、
-`tasks.daily600`、启动器几个）→ 缺一个停一步，不退回坐标。
+**弹窗确认键（2026-10-30 21:40 补，四个 id 已从「缺资产」变「可直点」）**：`exp.dispatch`、`work.confirm`、
+`comm.submit_confirm`、`material.reduce_confirm` 是**弹窗底部整条黄色通栏**（屏上 640–672×132，文案各异），
+与结算弹窗那个圆角「确定」（`dialog.ok`/`popup.ok2`，442×98）**不是同一种外观**。此前这四者只挂了通用「确定」
+别名，实测只有 **0.45–0.67 < 0.72** → 10:00 轮三处 fail-closed。现从该轮 run 截图裁出专用模板并接进
+`index.json`（排在通用别名之前），2560×1600 实图自匹配 **0.9790 / 0.9816 / 0.9857 / 0.9792**（scale 1.3310），
+同形异文案反例 **0.35–0.67**（全部 exit 2，见 `references/hi-screens.md` 第 6 条）。
+**`comm.put_pool`（放入舰团奖励池）仍无专用资产**——没有截图证据，到那一步大概率 0.5–0.7 → 按 R3 停手。
+
+其余 id 逐个 `coverage.mjs` 复核：30 个 coord id **全部有可用资产（缺 0）**；唯一"只有别名、没有专用外观"的是
+`comm.put_pool`。任何一步 locate 不到就停手，不退回坐标。
 
 ### 2.1 每步的可判定通过条件
 
@@ -242,8 +278,12 @@ uniqueness 0.49）→ **可直点**；`exp.onekey` = 已验（score **1.0000**�
 
 ## 4. 什么时候必须停手
 
+> 先分清「真卡住」还是「只是误入界面」：**任何停手判定之前，先按 §1.1 跑一次保险操作**（`--recover`）。
+> 归位成功 → 从被打断那一步重跑，不算停手；归位失败/连续两次归位仍在原地 → 才进入下面的停手清单。
+
 - 截图与 `expect` 对不上（版本更新 / 弹窗挡路 / 界面被改）
 - `locate` 连续两次没命中，或 `score < 0.72`（低置信不许点，R7）
+- 保险操作跑满 8 次仍未回到主界面（乱点可能踩到付费/删除面板）
 - 该步**模板缺失**（`references\templates\<id>.png` 不存在或没登记进 `index.json`）、同形按钮在
   `anchors.json` 里没有条目、或同形页**缺 `regions.json` 条目**（只能全屏 → `ambiguous` → exit 2，R3 / R9）
 - 同一目标连点两次画面没变化

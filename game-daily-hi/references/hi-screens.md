@@ -27,13 +27,30 @@ node ..\game-daily\scripts\locate.mjs --window "<游戏窗口标题>" `
 | 主界面 | 左侧：任务/活动/福利/邮件/公告/商城；底部：舰团/家园 | — | `tasks.open`、`nav.main_menu`、`nav.home` | — | 顶部有 等级、历练值、体力、金币、水晶；**底部 dock 的「舰团/家园」不是 `nav.expedition`/`nav.work`**（这两项在家园底栏） |
 | 作战任务 | 「作战任务」「历练任务」「一键领取」「每日历练值」 | `tasks.png` | `tasks.onekey_claim`、`tasks.daily600` | **`tasks.coin_go` / `tasks.clan_go` / `tasks.material_go` / `tasks.dorm_work_go`**：先 locate 行标题锚点（「金币采集」/「舰团委托」/「材料活动」/「家园打工」），再点 `锚点中心 + (+402,+98) × scale`（`anchors.json` **已实测**） | 底部有 100/200/300/450/600 进度条；行顺序随当日任务内容变化 |
 | 家园房间 | 「家园福利」「家园商店」「打工」「宿舍」「神之键」 | `dorm.png` | **家园底栏**「远征」=`nav.expedition`（已验证：score 1.0、center (1225,995)、uniqueness 0.45 → 可直点）；「打工」=`nav.work`（已验证：score 1.0、center (1470,995)、uniqueness 0.49 → 可直点） | — | 这两个**不在主界面 dock**；两个管：蓝=体力补充；橙色管点下去也是体力补充（不是金币采集） |
-| 远征 | 「今日远征可用体力」480/480、「一键远征」 | `expedition.png` | `exp.onekey`（已验证可直点）、`exp.dispatch`（缺模板） | **`exp.claim_one`**：同页 4~5 个**像素级同形**「完成远征」，全屏匹配 1.0 仍 **ambiguous**（runnerUp 0.9972 / uniqueness 0.0028）→ exit 2；**靠 `regions.json` 紧窗消歧**（条目已在：`pad [180,70]`）→ 紧窗 **score 0.9995 / uniqueness 0.6442 / ambiguous=false** → exit 0，**可执行**（点首行；任意一行功能等价）。**缺 `regions.json` 条目 → 退回 ±320 → ambiguous → 不可执行**。点之前确认列表在顶部（没滚动） | 6 条列表，每条右侧「完成远征」 |
-| 打工地图 | 地图 + 顶部「饭团」+ 右下「一键打工」「领取奖励」 | `work.png` | `work.claim_rewards`、`work.onekey`、`work.confirm`、`nav.back` | — | **没有「主菜单」**，只能「返回」（连点两次） |
-| 回收委托 | 「回收委托」「申请新委托」「提交」「今日剩余次数」 | `commission.png` | `comm.new`、`comm.onekey_apply`、`comm.submit_confirm`、`comm.put_pool` | **`comm.submit`**：锚点=当前委托行的标题/序号，**`comm.submit.anchor.png` 尚未裁剪、`anchors.json` 也无条目 → 现在不可执行**（先裁锚点 + 标定 offset） | 右下数字是剩余次数（8 次循环就看它） |
+| 远征 | 「今日远征可用体力」480/480、「一键远征」 | `expedition.png` | `exp.onekey`（已验证可直点）、`exp.dispatch`（专用模板已补：自匹配 **0.9790**） | **`exp.claim_one`**：同页 4~5 个**像素级同形**「完成远征」，全屏匹配 1.0 仍 **ambiguous**（runnerUp 0.9972 / uniqueness 0.0028）→ exit 2；**靠 `regions.json` 紧窗消歧**（条目已在：`pad [180,70]`）→ 紧窗 **score 0.9995 / uniqueness 0.6442 / ambiguous=false** → exit 0，**可执行**（点首行；任意一行功能等价）。**缺 `regions.json` 条目 → 退回 ±320 → ambiguous → 不可执行**。点之前确认列表在顶部（没滚动） | 6 条列表，每条右侧「完成远征」 |
+| 打工地图 | 地图 + 顶部「饭团」+ 右下「一键打工」「领取奖励」 | `work.png` | `work.claim_rewards`、`work.onekey`、`work.confirm`、`nav.back` | — | **没有「主菜单」**，只能「返回」（连点两次）；**`work.confirm` 专用模板已补：自匹配 0.9816**（此前只有通用「确定」别名 → 仅 0.623，靠紧窗复用 `work.onekey` 才过） |
+| 回收委托 | 「回收委托」「申请新委托」「提交」「今日剩余次数」 | `commission.png` | `comm.new`、`comm.onekey_apply`、`comm.submit_confirm`、`comm.put_pool` | **`comm.submit`**：锚点=当前委托行的标题/序号，**`comm.submit.anchor.png` 尚未裁剪、`anchors.json` 也无条目 → 现在不可执行**（先裁锚点 + 标定 offset） | 右下数字是剩余次数（8 次循环就看它）；**`comm.submit_confirm` 专用模板已补：自匹配 0.9857**（「提交委托」黄按钮）；`comm.put_pool` 仍只有通用「确定」别名、无专用资产 |
 | 委托申请 | 「委托申请次数」1/10、「一键申请」、一排「接受」 | `commission.png` | `comm.onekey_apply` | — | 一键申请后变 10/10 |
 | 舰团奖池 | 「常规发放」「随机发放」「舰团总贡献」「领取」 | `pool.png` | `side.pool_tab`、`pool.claim` | — | 右侧竖排第二个页签；上面那个是「回收委托」 |
-| 材料活动 | 「材料活动」「一键减负」+ 四张卡 | `material.png` | `material.onekey_reduce`、`material.reduce_confirm` | — | 一键减负 → 日常减负 |
+| 材料活动 | 「材料活动」「一键减负」+ 四张卡 | `material.png` | `material.onekey_reduce`、`material.reduce_confirm` | — | 一键减负 → 日常减负；**`material.reduce_confirm` 专用模板已补：自匹配 0.9792**（「减负」黄按钮） |
 | 结算弹窗 | 「领取奖励」/「获取委托报酬」/「获得奖励」+「确定」 | `daily600.png` | `dialog.ok`（高弹窗）或 `popup.ok2`（矮弹窗） | — | **两种高度，必须用各自模板定位**，见下第 4 条 |
+
+### 主界面判据（R10 保险操作用）
+
+判定「已经回到主界面」= **合取**（缺一不可）：
+
+| 条件 | 模板 | 阈值 | 1600p 主界面实测 |
+| --- | --- | --- | --- |
+| 在 | `tasks.open`（左列「任务」图标） | ≥ 0.65 | 0.787 ✅ |
+| 不在 | `nav.back`（返回） | < 0.82 | 0.634 ✅ |
+| 不在 | `nav.main_menu`（主菜单） | < 0.82 | 0.448 ✅ |
+| 不在 | `dialog.ok`（弹窗确定） | < 0.82 | 0.721 ✅ |
+
+- 阈值故意放宽（0.65 / 0.82）：主界面判定只需要**区分"是不是子页/弹窗"**，不需要亚像素精度；
+  真正点击目标仍走 R3 的 0.72。
+- **不要用 `nav.home`（家园）当主界面标记**：跨分辨率缩放后只有 0.79 且 `ambiguous=true`（底部 dock 形态随分辨率变）。
+- 判非主界面时的回退顺序固定：`dialog.ok`（先关弹窗）→ `nav.back`（后退）→ `nav.main_menu`（退不动就点主菜单），
+  每退一次重新截图复检，最多 8 次（参数在 `references/hi-daily.json` 的 `recovery` 块）。
 
 ## 锚点模板 / 点击偏移（R9）
 
@@ -86,6 +103,11 @@ node ..\game-daily\scripts\locate.mjs --window "<游戏窗口标题>" `
 5. **弹窗不遵守任何单一比例律**（2026-10-30 实测）：`dialog.ok` 1080p = (959,797)。x 符合宽度律（≈960），
    但 y 用宽度律外推 814、高度律外推 786，实测 797——两边都对不上。所以弹窗**只能模板定位**，
    不要用"按比例算一下"去猜。
+6. **「确定」键 ≠ 弹窗底部那条黄色通栏按钮**（2026-10-30 补）：结算/奖励类弹窗底部是圆角小「确定」
+   （`dialog.ok` / `popup.ok2`，442×98）；而远征派遣 / 打工确认 / 提交委托 / 日常减负这四类是**整条黄色通栏**
+   （屏上约 640–672×132），文案各异。拿「确定」模板去套通栏，实测只有 **0.45–0.67 < 0.72** → 必然 fail-closed。
+   这四类现已各有专用模板（`exp.dispatch` / `work.confirm` / `comm.submit_confirm` / `material.reduce_confirm`，
+   自匹配 0.979–0.986）；`comm.put_pool` 尚未补，遇到就按 R3 停手。
 
 ## 认屏闸门怎么用（把上面这张表变成判定）
 

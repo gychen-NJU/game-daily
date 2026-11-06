@@ -31,7 +31,7 @@ const valOf = (f) => {
 const game = valOf('--game') || 'sr'
 const stepArg = valOf('--step')
 const all = flag('--all')
-const execute = flag('--ps') || flag('--probe')
+const execute = flag('--ps') || flag('--probe') || flag('--recover')
 const noFg = flag('--no-fg')
 const asJson = flag('--json')
 const locateMode = flag('--locate')
@@ -211,8 +211,9 @@ function templateCandidates(id) {
   return [join(templateDir, `${id}.png`)]
 }
 
-function locateOne(shot, tpl, region) {
-  const args = [LOCATE_PS, '--image', shot, '--template', tpl, '--threshold', String(threshold), '--json']
+function locateOne(shot, tpl, region, thr) {
+  const thrUse = thr === undefined ? threshold : thr
+  const args = [LOCATE_PS, '--image', shot, '--template', tpl, '--threshold', String(thrUse), '--json']
   if (region) args.push('--region', region)
   let out = ''
   let code = 0
@@ -244,7 +245,7 @@ function anchorSpec(id) {
   return null
 }
 
-function locateTarget(shot, id, region) {
+function locateTarget(shot, id, region, thr) {
   const cands = templateCandidates(id)
   const present = flag('--anchor-only') ? [] : cands.filter((p) => existsSync(p))
   if (!present.length) {
@@ -253,7 +254,7 @@ function locateTarget(shot, id, region) {
       return { id, ok: false, found: false, reason: `模板缺失：${cands.join(', ')}（按 R3 停手，先补模板；同形按钮应先配 anchors.json）`, template: cands[0] }
     }
   }
-  const tried = present.map((tpl) => locateOne(shot, tpl, region))
+  const tried = present.map((tpl) => locateOne(shot, tpl, region, thr))
   const hits = tried.filter((r) => r.found)
   if (hits.length) {
     const best = hits.reduce((a, b) => (b.score > a.score ? b : a))
@@ -265,7 +266,7 @@ function locateTarget(shot, id, region) {
     if (existsSync(anchorPath)) {
       // 锚点文字离目标按钮 dx 远（作战任务页是 +402px），用目标先验窗会把它切掉 →
       // 锚点一律全屏找：文字模板本身够独特，且行位置本来就随当日内容漂移。
-      const a = locateOne(shot, anchorPath, null)
+      const a = locateOne(shot, anchorPath, null, thr)
       if (a.found) {
         const k = a.scale || 1
         const cx = Math.round(a.cx + spec.dx * k)
@@ -327,6 +328,78 @@ function layoutRegion(id, win) {
   } catch {
     return null
   }
+}
+
+// ---------- 保险操作（R11）：误入非预期界面 → 「返回」/「主菜单」逐步回主界面 → 重跑中断步骤 ----------
+// 触发条件：定位失败（界面不对/停在弹窗/误进子页）。动作：先找「返回」后退，找不到就点「主菜单」，
+// 直到主界面标记（默认 tasks.open + nav.home 双命中）出现，然后从该步第一条动作重新开始（只重试一次）。
+const recoveryCfg = (daily && daily.recovery) || {}
+const RECOVER_DRY = flag('--dry-run') || flag('--recover-dry')
+const SHOT_OVERRIDE = valOf('--shot')
+const NO_RECOVER = flag('--no-recover')
+const MAX_RECOVER = Number(valOf('--max-recover') || recoveryCfg.maxTries || 8)
+// 主界面特征：必须有「任务」图标；且不能有 返回/主菜单/确定（有这些说明在子页或弹窗里）
+const HOME_MARK = recoveryCfg.homeMark || 'tasks.open'
+const HOME_ABSENT = Array.isArray(recoveryCfg.homeAbsent) && recoveryCfg.homeAbsent.length ? recoveryCfg.homeAbsent : ['nav.back', 'nav.main_menu', 'dialog.ok']
+// 回退动作顺序：先关弹窗（确定），再后退（返回），最后直接回主菜单
+const BACK_IDS = Array.isArray(recoveryCfg.backIds) && recoveryCfg.backIds.length ? recoveryCfg.backIds : ['dialog.ok', 'nav.back', 'nav.main_menu']
+// 「不该出现的东西」判定用更高门槛（0.82）：主界面上那些黄色按钮对 dialog.ok 的误配通常只到 0.72~0.80
+const ABSENT_MIN = Number(recoveryCfg.absentThreshold || 0.82)
+// 主界面标记门槛放宽到 0.65：主界面判定是「有任务图标 且 无返回/主菜单/确定」的合取，
+// 单靠图标分数容易在跨分辨率缩小后掉到 0.72 以下（实测 1600p→1080p 缩放后 0.676）。
+const HOME_MIN = Number(recoveryCfg.homeThreshold || 0.65)
+
+/** 布局先验在"异常界面"上不可信，取不到就返回 null（= 全屏找）。 */
+function safeRegion(id, win) {
+  try {
+    if (!win || !win.client || !win.client.w) return null
+    return layoutRegion(id, win)
+  } catch { return null }
+}
+
+/** 主界面判定：HOME_MARK 命中，且 HOME_ABSENT 全部未命中。 */
+function isMainMenu(shot, win) {
+  const markLoc = locateTarget(shot, HOME_MARK, safeRegion(HOME_MARK, win), HOME_MIN)
+  const marks = [{ id: HOME_MARK, ok: Boolean(markLoc.ok && markLoc.found), score: markLoc.score, cx: markLoc.cx, cy: markLoc.cy }]
+  for (const id of HOME_ABSENT) {
+    const loc = locateTarget(shot, id, null)
+    const present = Boolean(loc.ok && loc.found && (Number(loc.score) || 0) >= ABSENT_MIN)
+    marks.push({ id, ok: !present, score: loc.score, absent: true })
+  }
+  return { ok: marks.every((m) => m.ok), marks }
+}
+
+/** 回到主界面。opts.dryRun=true 时只报告"会点哪里"，不动鼠标。 */
+function recoverToMain(win, opts = {}) {
+  const log = []
+  const dry = opts.dryRun || RECOVER_DRY || Boolean(opts.shotOverride)
+  // 静态截图不可能被点击改变 → 强制 dry-run，只报告"会点哪里"
+  const maxTries = opts.maxTries || MAX_RECOVER
+  const settle = Number(recoveryCfg.settleMs) || 900
+  for (let attempt = 1; attempt <= maxTries; attempt++) {
+    const shot = opts.shotOverride || captureClient(win, `recover-${Date.now()}-${attempt}`)
+    const home = isMainMenu(shot, win)
+    log.push({ attempt, shot, marks: home.marks.map((m) => `${m.id}:${m.score}`), main: home.ok })
+    if (home.ok) return { ok: true, attempts: attempt - 1, shot, log }
+    // 异常界面里的布局先验不可信 → 一律全屏找
+    let step = null
+    for (const id of BACK_IDS) {
+      const loc = locateTarget(shot, id, null)
+      if (loc.ok && loc.found) { step = { id, loc }; break }
+    }
+    if (!step) return { ok: false, reason: '异常界面里既找不到「返回」也找不到「主菜单」，按 R11 停手', shot, log }
+    const ox = (win && win.client && win.client.x) || 0
+    const oy = (win && win.client && win.client.y) || 0
+    const sx = ox + step.loc.cx
+    const sy = oy + step.loc.cy
+    log.push({ attempt, wouldClick: step.id, score: step.loc.score, client: { x: step.loc.cx, y: step.loc.cy } })
+    if (dry) return { ok: false, dryRun: true, wouldClick: { id: step.id, clientX: step.loc.cx, clientY: step.loc.cy, screenX: sx, screenY: sy }, shot, log }
+    const sent = runCmds(['key 18', 'sleep 120', `activate ${win.hwnd}`, 'sleep 220',
+      `move ${sx} ${sy}`, 'sleep 120', `click ${sx} ${sy}`, `sleep ${settle}`])
+    const bad = sent.filter((x) => x.ok === false)
+    if (bad.length) return { ok: false, reason: '回退点击发送失败（UIPI/提权？）', log }
+  }
+  return { ok: false, reason: `连续 ${maxTries} 次回退仍未回到主界面，按 R11 停手`, log }
 }
 
 function helperAlive() {
@@ -405,6 +478,7 @@ function runLocated(plans, win, probe) {
     const evidence = []
     let pending = []
     let failure = null
+    let recoveredThisStep = 0
     if (!noFg) {
       const fg = runCmds(['key 18', 'sleep 120', `activate ${win.hwnd}`, 'sleep 350'])
       const bad = fg.filter((x) => x.ok === false)
@@ -417,7 +491,8 @@ function runLocated(plans, win, probe) {
       if (bad.length) process.stderr.write(`  附带动作有失败：${JSON.stringify(bad)}\n`)
       pending = []
     }
-    for (const a of p.actions) {
+    for (let ai = 0; ai < p.actions.length; ai++) {
+      const a = p.actions[ai]
       if (a.do === 'click') {
         if (!a.coord) {
           failure = { step: p.id, failure: '--locate 要求 click 必须用 coord id 指向模板，裸 x/y 会被拒绝（R3/R4）' }
@@ -431,6 +506,22 @@ function runLocated(plans, win, probe) {
         if (!loc.ok || !loc.found) {
           rec.failure = loc.reason || `未定位到（score=${loc.score}, threshold=${threshold}）`
           evidence.push(rec)
+          // 保险（R11）：定位不到多半是误入其它界面 → 用「返回」/「主菜单」回主界面，再从本步第 1 条动作重跑（每步最多一次）
+          if (!probe && !NO_RECOVER && recoveredThisStep < 1) {
+            recoveredThisStep++
+            process.stdout.write(`  [保险] 定位失败（${a.coord}）：${rec.failure}\n  [保险] 尝试回主界面…\n`)
+            const rec2 = recoverToMain(win)
+            for (const l of rec2.log || []) {
+              process.stdout.write(`    · #${l.attempt} ${l.marks ? 'marks=' + l.marks.join(',') : ''}${l.wouldClick ? ' click=' + l.wouldClick : ''}\n`)
+            }
+            if (rec2.ok) {
+              process.stdout.write(`  [保险] 已回主界面（回退 ${rec2.attempts} 次）→ 从第 1 条动作重跑步骤 ${p.id}\n`)
+              pending = []
+              ai = -1
+              continue
+            }
+            process.stdout.write(`  [保险] 回主界面失败：${rec2.reason}；按原错误停手\n`)
+          }
           failure = rec
           break
         }
@@ -478,6 +569,29 @@ function runLocated(plans, win, probe) {
 }
 
 function main() {
+  // 保险操作独立入口：node run-step.mjs --game hi --recover [--ps] [--dry-run] [--shot <png>] [--max-recover N]
+  if (flag('--recover')) {
+    let win = null
+    if (SHOT_OVERRIDE) {
+      process.stdout.write(`\n保险操作（校验静态截图，不点击）：${SHOT_OVERRIDE}\n`)
+    } else {
+      const h = helperAlive()
+      if (!h.alive) die(`提权助手不可用：${h.reason}。先执行 Start-Process powershell -Verb RunAs -File "${join(__dirname, 'helper.ps1')}" -ArgumentList "-StateDir","${stateDir}"`)
+      win = gameWindow()
+      if (!win || !win.hwnd) die(`没找到游戏窗口（进程 ${GAME_PROC[game] || 'StarRail'} 未运行或没有主窗口）`)
+      process.stdout.write(`\n保险操作：回主界面（hwnd=${win.hwnd}，client=${win.client.w}x${win.client.h}；主界面=有「${HOME_MARK}」且无 ${HOME_ABSENT.join('/')}；回退顺序=${BACK_IDS.join('→')}；最多 ${MAX_RECOVER} 次${RECOVER_DRY ? '，dry-run 不点击' : ''}）\n`)
+    }
+    const r = recoverToMain(win, { shotOverride: SHOT_OVERRIDE })
+    for (const l of r.log || []) {
+      process.stdout.write(`  · #${l.attempt} ${l.marks ? 'marks=' + l.marks.join(',') : ''}${l.wouldClick ? ' → click=' + l.wouldClick : ''}${l.failed !== undefined ? ' failed=' + l.failed : ''}\n`)
+    }
+    if (r.ok) process.stdout.write(`结果：已在主界面（回退 ${r.attempts} 次）\n`)
+    else if (r.dryRun) process.stdout.write(`结果：dry-run → 下一步会点「${r.wouldClick.id}」客户端(${r.wouldClick.clientX},${r.wouldClick.clientY}) 屏幕(${r.wouldClick.screenX},${r.wouldClick.screenY})\n`)
+    else process.stdout.write(`结果：失败 → ${r.reason}\n`)
+    if (r.shot) process.stdout.write(`  证据: ${r.shot}\n`)
+    process.exit(r.ok ? 0 : 3)
+  }
+
   const steps = all ? daily.steps : daily.steps.filter((s) => String(s.id) === String(stepArg))
   if (!steps.length) die(`找不到步骤：${stepArg}（可用：${daily.steps.map((s) => s.id).join(', ')}）`)
 

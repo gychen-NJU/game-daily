@@ -3,6 +3,18 @@
   "version": 1,
   "base": { "w": 2560, "h": 1600 },
   "notes": "崩坏3 每日流程（2026-10-23 实跑版本 V9.1 / V8.1.0_15329）。坐标 id 见 hi-coords.json，首次运行先校准。expect/verify 的文案是给 agent 看图核对用的，不是精确 OCR 断言。",
+  "recovery": {
+    "when": "定位失败 / 认屏不符 / 点完界面没变化 / 误入弹窗或子页（R10 保险操作）",
+    "note": "先关弹窗（确定）→ 再逐步「返回」→ 找不到「返回」就点「主菜单」；回到主界面后从被中断步骤的第 1 条动作重跑（每步最多自动重试一次，再失败就停手）。",
+    "homeMark": "tasks.open",
+    "homeAbsent": ["nav.back", "nav.main_menu", "dialog.ok"],
+    "backIds": ["dialog.ok", "nav.back", "nav.main_menu"],
+    "maxTries": 8,
+    "settleMs": 900,
+    "homeThreshold": 0.65,
+    "absentThreshold": 0.82,
+    "mainMenuDefinition": "主界面 = 左列「任务」图标命中（>=0.65）且「返回」/「主菜单」/「确定」三个按钮都未命中（每个都 < 0.82 才算不存在）"
+  },
   "preflight": {
     "when": "进程里没有 BH3.exe（cold）或只有启动器（launcher）",
     "note": "启动链不属于每日流程；只在需要把游戏从桌面拉起来时执行。",
